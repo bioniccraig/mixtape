@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Word lock files
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vite
+*.timestamp-*.mjs
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
