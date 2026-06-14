@@ -1,17 +1,57 @@
 import { TAPE_THEMES, MAX_SIDE_MS } from './constants';
 
-// Three spokes at 0°, 120°, 240° — makes rotation clearly visible
+// Spokes radiating from the hub — make rotation clearly visible.
 function Spokes({ cx, cy, r, color }) {
-  const angles = [0, 120, 240];
-  const inner = 9;
-  return angles.map(deg => {
+  const inner = 6;
+  return [0, 60, 120, 180, 240, 300].map(deg => {
     const rad = (deg * Math.PI) / 180;
-    const x1 = cx + Math.cos(rad) * inner;
-    const y1 = cy + Math.sin(rad) * inner;
-    const x2 = cx + Math.cos(rad) * (r - 3);
-    const y2 = cy + Math.sin(rad) * (r - 3);
-    return <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth="2.5" strokeLinecap="round" />;
+    return (
+      <line
+        key={deg}
+        x1={cx + Math.cos(rad) * inner}
+        y1={cy + Math.sin(rad) * inner}
+        x2={cx + Math.cos(rad) * (r - 2)}
+        y2={cy + Math.sin(rad) * (r - 2)}
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    );
   });
+}
+
+// One reel: a wound tape pack (radius grows with fill) + a toothed hub that spins.
+function Reel({ cx, cy, pack, spinning, dur }) {
+  return (
+    <g>
+      {/* tape pack — concentric rings read as wound tape */}
+      <circle cx={cx} cy={cy} r={pack} fill="#2b1c10" />
+      <circle cx={cx} cy={cy} r={pack} fill="none" stroke="#4a3320" strokeWidth="1" opacity="0.6" />
+      <circle cx={cx} cy={cy} r={(pack + 16) / 2} fill="none" stroke="#3a2716" strokeWidth="1" opacity="0.5" />
+      {/* spinning hub */}
+      <g>
+        <circle cx={cx} cy={cy} r="16" fill="#e9e9ee" />
+        <circle cx={cx} cy={cy} r="16" fill="none" stroke="#b9b9c4" strokeWidth="1" />
+        <Spokes cx={cx} cy={cy} r={15} color="#9a9aa6" />
+        {/* sprocket teeth */}
+        {[0, 60, 120, 180, 240, 300].map(deg => {
+          const rad = (deg * Math.PI) / 180;
+          return <circle key={deg} cx={cx + Math.cos(rad) * 9} cy={cy + Math.sin(rad) * 9} r="2.1" fill="#6f6f7a" />;
+        })}
+        <circle cx={cx} cy={cy} r="4" fill="#2a2a31" />
+        {spinning && (
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from={`0 ${cx} ${cy}`}
+            to={`360 ${cx} ${cy}`}
+            dur={`${dur}s`}
+            repeatCount="indefinite"
+          />
+        )}
+      </g>
+    </g>
+  );
 }
 
 export default function CassetteSVG({ theme, sideAMs, sideBMs, title, spinning }) {
@@ -19,93 +59,87 @@ export default function CassetteSVG({ theme, sideAMs, sideBMs, title, spinning }
   const aPct = Math.min((sideAMs || 0) / MAX_SIDE_MS, 1);
   const bPct = Math.min((sideBMs || 0) / MAX_SIDE_MS, 1);
 
-  const leftR  = 18 + bPct * 10;
-  const rightR = 18 + aPct * 10;
+  const PACK_MIN = 20, PACK_MAX = 40;
+  const leftPack  = PACK_MIN + bPct * (PACK_MAX - PACK_MIN); // Side B
+  const rightPack = PACK_MIN + aPct * (PACK_MAX - PACK_MIN); // Side A
 
-  // Spoke colour: lighter than reel body so they're visible
-  const spokeColor = t.id === 'yellow' ? '#888' : '#bbb';
+  // Retro rainbow stripes for the label band
+  const stripes = ['#e23b2e', '#ef7d34', '#f4c531', '#3fae6b', '#2f7fc0', '#5a4b9c'];
 
   return (
     <svg
-      viewBox="0 0 280 160"
+      viewBox="0 0 360 230"
       width="100%"
-      style={{ maxWidth: 420, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.25))' }}
+      style={{ maxWidth: 440, filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.35))' }}
     >
-      {/* Body */}
-      <rect x="4" y="20" width="272" height="120" rx="14" fill={t.body} />
+      <defs>
+        <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.28" />
+          <stop offset="0.5" stopColor="#fff" stopOpacity="0.04" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.22" />
+        </linearGradient>
+        <linearGradient id="windowGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0a0a0e" />
+          <stop offset="1" stopColor="#23232b" />
+        </linearGradient>
+      </defs>
 
-      {/* Window cutout */}
-      <rect x="60" y="34" width="160" height="72" rx="8" fill="#111" opacity="0.85" />
-
-      {/* Left reel (Side B) */}
-      <g>
-        <circle cx="106" cy="70" r={leftR} fill={t.reel} />
-        <Spokes cx={106} cy={70} r={leftR} color={spokeColor} />
-        <circle cx="106" cy="70" r="8" fill="#444" />
-        <circle cx="106" cy="70" r="4" fill="#aaa" />
-        {spinning && (
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 106 70"
-            to="360 106 70"
-            dur="2.2s"
-            repeatCount="indefinite"
-          />
-        )}
-      </g>
-
-      {/* Right reel (Side A) */}
-      <g>
-        <circle cx="174" cy="70" r={rightR} fill={t.reel} />
-        <Spokes cx={174} cy={70} r={rightR} color={spokeColor} />
-        <circle cx="174" cy="70" r="8" fill="#444" />
-        <circle cx="174" cy="70" r="4" fill="#aaa" />
-        {spinning && (
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 174 70"
-            to="360 174 70"
-            dur="1.7s"
-            repeatCount="indefinite"
-          />
-        )}
-      </g>
-
-      {/* Tape strand */}
-      <path
-        d={`M ${106 + leftR} 70 Q 140 84 ${174 - rightR} 70`}
-        fill="none"
-        stroke="#3a2500"
-        strokeWidth="2.5"
-        opacity="0.75"
-      />
+      {/* Shell */}
+      <rect x="8" y="14" width="344" height="202" rx="18" fill={t.body} />
+      <rect x="8" y="14" width="344" height="202" rx="18" fill="url(#sheen)" />
+      <rect x="8" y="14" width="344" height="202" rx="18" fill="none" stroke="#000" strokeOpacity="0.18" strokeWidth="1.5" />
+      {/* inner bezel */}
+      <rect x="20" y="26" width="320" height="178" rx="12" fill="#000" opacity="0.06" />
 
       {/* Label */}
-      <rect x="64" y="96" width="152" height="30" rx="4" fill={t.label_bg} />
-      <text
-        x="140" y="116"
-        textAnchor="middle"
-        fontSize="11"
-        fontWeight="bold"
-        fill={t.label_text}
-        fontFamily="Arial, sans-serif"
-      >
+      <rect x="40" y="34" width="280" height="60" rx="6" fill={t.label_bg} />
+      <rect x="40" y="34" width="280" height="60" rx="6" fill="none" stroke="#000" strokeOpacity="0.12" />
+      {/* rainbow band */}
+      <g>
+        {stripes.map((c, i) => (
+          <rect key={c} x={44 + i * 45.5} y="38" width="45.5" height="7" fill={c} />
+        ))}
+        <rect x="44" y="38" width={stripes.length * 45.5} height="7" rx="2" fill="none" />
+      </g>
+      <text x="180" y="68" textAnchor="middle" fontSize="15" fontWeight="700"
+        fill={t.label_text} fontFamily="'Space Mono', ui-monospace, monospace" letterSpacing="0.5">
         {(title || 'MY MIXTAPE').slice(0, 22)}
       </text>
+      <text x="180" y="85" textAnchor="middle" fontSize="8.5"
+        fill={t.label_text} opacity="0.65" fontFamily="'Space Mono', ui-monospace, monospace" letterSpacing="1.5">
+        NORMAL POSITION · EQ 120µS
+      </text>
 
-      {/* Side indicators */}
-      <text x="86"  y="67" textAnchor="middle" fontSize="8" fill="#fff" opacity="0.6" fontFamily="Arial">B</text>
-      <text x="194" y="67" textAnchor="middle" fontSize="8" fill="#fff" opacity="0.6" fontFamily="Arial">A</text>
+      {/* Window */}
+      <rect x="62" y="104" width="236" height="96" rx="12" fill="url(#windowGrad)" />
+      <rect x="62" y="104" width="236" height="96" rx="12" fill="none" stroke="#000" strokeOpacity="0.5" strokeWidth="2" />
+
+      {/* Reels */}
+      <Reel cx={132} cy={152} pack={leftPack}  spinning={spinning} dur={2.2} />
+      <Reel cx={228} cy={152} pack={rightPack} spinning={spinning} dur={1.7} />
+
+      {/* Tape strand between reels */}
+      <path d={`M ${132 + leftPack} 152 Q 180 168 ${228 - rightPack} 152`}
+        fill="none" stroke="#2b1c10" strokeWidth="2.5" opacity="0.8" />
+
+      {/* Side letters */}
+      <text x="92"  y="120" textAnchor="middle" fontSize="11" fill="#fff" opacity="0.7"
+        fontFamily="'Space Mono', monospace">B</text>
+      <text x="268" y="120" textAnchor="middle" fontSize="11" fill="#fff" opacity="0.7"
+        fontFamily="'Space Mono', monospace">A</text>
+
+      {/* Bottom spindle / capstan holes */}
+      <circle cx="150" cy="206" r="3.5" fill="#000" opacity="0.4" />
+      <circle cx="210" cy="206" r="3.5" fill="#000" opacity="0.4" />
+      <rect x="166" y="203" width="28" height="7" rx="3" fill="#000" opacity="0.25" />
 
       {/* Corner screws */}
-      {[32, 248].map(cx => (
-        <circle key={cx} cx={cx} cy="130" r="7" fill="#000" opacity="0.35" />
+      {[[30, 40], [330, 40], [30, 196], [330, 196]].map(([x, y]) => (
+        <g key={`${x}-${y}`}>
+          <circle cx={x} cy={y} r="5.5" fill="#000" opacity="0.28" />
+          <circle cx={x} cy={y} r="2.5" fill="#000" opacity="0.35" />
+        </g>
       ))}
-
-      {/* Bottom alignment notch */}
-      <rect x="120" y="136" width="40" height="5" rx="2" fill="#000" opacity="0.25" />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TapeBuilder from './TapeBuilder';
 import TapePlayer  from './TapePlayer';
+import CassetteSVG from './Cassette';
 import { getSharedTape } from './share';
 import './App.css';
 
@@ -50,6 +51,9 @@ function App() {
 
   return (
     <div className="splash">
+      <div className="splash-hero">
+        <CassetteSVG theme="yellow" sideAMs={20 * 60 * 1000} sideBMs={14 * 60 * 1000} title="MIXTAPE" spinning={false} />
+      </div>
       <div className="logo">
         <span className="logo-icon">◼</span>
         <span className="logo-text">MixTape</span>

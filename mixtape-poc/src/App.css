@@ -1,7 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif);
   background: #0d0d1a;
   color: #f0f0f0;
   min-height: 100vh;
@@ -18,19 +18,34 @@ body {
   background: linear-gradient(160deg, #0d0d1a 0%, #1a1a2e 100%);
 }
 
+.splash-hero {
+  width: 100%;
+  max-width: 380px;
+  padding: 0 24px;
+  margin-bottom: 8px;
+}
+
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.logo-icon { font-size: 48px; color: #e85d75; }
-.logo-text  { font-size: 42px; font-weight: 900; letter-spacing: -1px; color: #fff; }
+.logo-icon { font-size: 44px; color: #e85d75; }
+.logo-text  {
+  font-family: var(--heading);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #fff;
+}
 
 .tagline {
-  font-size: 18px;
-  color: #888;
-  letter-spacing: 2px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: #9a9aa6;
+  letter-spacing: 3px;
   text-transform: uppercase;
 }
 
@@ -106,7 +121,7 @@ body {
 
 .header-logo { display: flex; align-items: center; gap: 8px; }
 .header-logo .logo-icon { font-size: 22px; color: #e85d75; }
-.header-logo .logo-text { font-size: 20px; font-weight: 900; color: #fff; }
+.header-logo .logo-text { font-family: var(--heading); font-size: 19px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #fff; }
 
 .header-user {
   display: flex;
