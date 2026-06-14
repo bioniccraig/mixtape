@@ -6,10 +6,13 @@
 // Resolve the best YouTube match for a track.
 // Returns { youtubeId, youtubeUrl, title, artist, thumbnail } — youtubeId may be null.
 export async function matchTrack(track) {
-  const qs = track.uri
-    ? `url=${encodeURIComponent(track.uri)}`
-    : `id=${encodeURIComponent(track.id)}`;
-  const r = await fetch(`/api/odesli?${qs}`);
+  const params = new URLSearchParams();
+  if (track.uri) params.set('url', track.uri);
+  else params.set('id', track.id);
+  // Title + artist let the server fall back to a YouTube search if Odesli misses.
+  if (track.title) params.set('title', track.title);
+  if (track.artist) params.set('artist', track.artist);
+  const r = await fetch(`/api/odesli?${params}`);
   if (!r.ok) throw new Error(`match failed (${r.status})`);
   return r.json();
 }
