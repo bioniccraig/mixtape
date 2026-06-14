@@ -204,10 +204,13 @@ export default function TapeBuilder({ onBack }) {
     }
   }
 
+  const [mobilePanel, setMobilePanel] = useState('search');
+
   const trackList        = activeSide === 'A' ? sideA : sideB;
   const disabled         = { A: sideAMs >= MAX_SIDE_MS, B: sideBMs >= MAX_SIDE_MS };
   const hasTracks        = sideA.length > 0 || sideB.length > 0;
   const nowPlayingTrack  = playing ? (playingSide === 'A' ? sideA : sideB)[playingIndex] : null;
+  const totalTracks      = sideA.length + sideB.length;
 
   return (
     <div className="builder">
@@ -228,8 +231,24 @@ export default function TapeBuilder({ onBack }) {
       </header>
 
       <div className="builder-body">
+        {/* ── Mobile tab bar (hidden on desktop via CSS) ── */}
+        <div className="mobile-tabs">
+          <button
+            className={`mobile-tab ${mobilePanel === 'tape' ? 'active' : ''}`}
+            onClick={() => setMobilePanel('tape')}
+          >
+            ◼ My Tape{totalTracks > 0 ? ` (${totalTracks})` : ''}
+          </button>
+          <button
+            className={`mobile-tab ${mobilePanel === 'search' ? 'active' : ''}`}
+            onClick={() => setMobilePanel('search')}
+          >
+            🔍 Search
+          </button>
+        </div>
+
         {/* ── Left: Tape visual + tracklist ── */}
-        <div className="panel panel-tape">
+        <div className={`panel panel-tape ${mobilePanel !== 'tape' ? 'mobile-hide' : ''}`}>
 
           <input
             className="tape-name-input"
@@ -314,7 +333,7 @@ export default function TapeBuilder({ onBack }) {
 
           <div className="tape-tracklist">
             {trackList.length === 0
-              ? <p className="empty-side">Side {activeSide} is empty — search for tracks →</p>
+              ? <p className="empty-side">Side {activeSide} is empty — search for tracks to add</p>
               : trackList.map((t, i) => (
                 <TapeTrack
                   key={t.id + i}
@@ -331,7 +350,7 @@ export default function TapeBuilder({ onBack }) {
         </div>
 
         {/* ── Right: Search ── */}
-        <div className="panel panel-search">
+        <div className={`panel panel-search ${mobilePanel !== 'search' ? 'mobile-hide' : ''}`}>
           <div className="search-header">
             <input
               className="search-input"

@@ -612,3 +612,87 @@ body {
   color: #e85d75;
   font-size: 12px;
 }
+
+/* ── Mobile tab bar (hidden on desktop) ──────────────────────────────────── */
+.mobile-tabs { display: none; }
+
+/* ── Mobile layout ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Builder: drop fixed height so page can scroll */
+  .builder {
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+  }
+
+  .builder-body {
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+  }
+
+  /* Show the tab bar */
+  .mobile-tabs {
+    display: flex;
+    width: 100%;
+    background: #111122;
+    border-bottom: 1px solid #2a2a3e;
+    flex-shrink: 0;
+  }
+  .mobile-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    padding: 13px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .mobile-tab.active {
+    color: #e85d75;
+    border-bottom-color: #e85d75;
+  }
+
+  /* Hide inactive panel */
+  .mobile-hide { display: none !important; }
+
+  /* Tape panel: full width, natural height */
+  .panel-tape {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #2a2a3e;
+    overflow: visible;
+  }
+
+  /* Search panel: fill remaining screen height */
+  .panel-search {
+    overflow: visible;
+    min-height: 60vh;
+  }
+
+  /* Track list: scrollable box so results don't push page endlessly */
+  .track-list {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  /* Cassette SVG: shrink a touch on small screens */
+  .cassette-wrap svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Header: tighten padding */
+  .builder-header {
+    padding: 10px 14px;
+  }
+
+  /* Splash: already centred, just tighten font */
+  .logo-text  { font-size: 34px; }
+  .logo-icon  { font-size: 38px; }
+  .tagline    { font-size: 15px; }
+}
