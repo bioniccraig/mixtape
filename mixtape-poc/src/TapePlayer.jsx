@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import CassetteSVG from './Cassette';
 import JCard from './JCard';
+import { useYouTube } from './useYouTube';
 
 export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const [tracksA,   setTracksA]   = useState(tape.sideA);
@@ -11,12 +12,35 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard, setShowJCard] = useState(false);
   const [toast,     setToast]     = useState(null);
-  const audioRef = useRef(null);
 
   const sideAMs = tape.sideA.reduce((t, x) => t + x.durationMs, 0);
   const sideBMs = tape.sideB.reduce((t, x) => t + x.durationMs, 0);
 
-  // ── Enrich: fetch artwork + previewUrl for all tracks, save to localStorage ──
+  // ── Advance: kept in a ref so the YouTube onEnded callback always sees fresh state ──
+  const advanceRef = useRef(() => {});
+  useEffect(() => {
+    advanceRef.current = () => {
+      const tracks = playingSide === 'A' ? tracksA : tracksB;
+      if (playingIndex + 1 < tracks.length) {
+        setPlayingIndex(playingIndex + 1);
+      } else if (playingSide === 'A' && tracksB.length > 0) {
+        showMsg('🎵 Flipping to Side B…');
+        setPlayingSide('B');
+        setPlayingIndex(0);
+      } else {
+        setPlaying(false);
+        setPlayingIndex(0);
+        showMsg('🎵 End of tape');
+      }
+    };
+  });
+
+  const yt = useYouTube({
+    elementId: 'yt-player-recipient',
+    onEnded: () => advanceRef.current(),
+  });
+
+  // ── Enrich: fetch artwork for the J-card (playback no longer needs previews) ──
   useEffect(() => {
     const all = [...tape.sideA, ...tape.sideB];
     const ids = all.map(t => t.id).filter(Boolean).join(',');
@@ -28,79 +52,39 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
         const map = {};
         results.forEach(r => {
           map[String(r.trackId)] = {
-            artwork:    r.artworkUrl100?.replace('100x100bb', '300x300bb') || null,
-            previewUrl: r.previewUrl || null,
+            artwork: r.artworkUrl100?.replace('100x100bb', '300x300bb') || null,
           };
         });
-
-        const enrich = arr => arr.map(t => ({
-          ...t,
-          artwork:    map[t.id]?.artwork    ?? t.artwork    ?? null,
-          previewUrl: map[t.id]?.previewUrl ?? t.previewUrl ?? null,
-        }));
-
+        const enrich = arr => arr.map(t => ({ ...t, artwork: map[t.id]?.artwork ?? t.artwork ?? null }));
         const a = enrich(tape.sideA);
         const b = enrich(tape.sideB);
         setTracksA(a);
         setTracksB(b);
-
-        // Persist so the tape survives navigation
         try {
-          localStorage.setItem('mixtape_saved', JSON.stringify({
-            ...tape, sideA: a, sideB: b, savedAt: Date.now(),
-          }));
-        } catch {}
+          localStorage.setItem('mixtape_saved', JSON.stringify({ ...tape, sideA: a, sideB: b, savedAt: Date.now() }));
+        } catch { /* storage full / disabled */ }
       })
       .catch(() => {})
       .finally(() => setEnriched(true));
   }, []); // eslint-disable-line
 
-  // ── Audio playback ────────────────────────────────────────────────────────────
+  // ── Drive the YouTube engine off playback state ──
   useEffect(() => {
-    if (!playing) { audioRef.current?.pause(); return; }
-
-    const tracks = playingSide === 'A' ? tracksA : tracksB;
-    const track  = tracks[playingIndex];
+    if (!playing) { yt.stop(); return; }
+    const track = (playingSide === 'A' ? tracksA : tracksB)[playingIndex];
     if (!track) { setPlaying(false); return; }
-
-    if (!track.previewUrl) {
-      showMsg(`Skipping "${track.title}" — no preview`);
-      advance(playingSide, playingIndex);
+    if (!track.ytId) {
+      showMsg(`Skipping "${track.title}" — no match`);
+      advanceRef.current();
       return;
     }
-
-    if (!audioRef.current) audioRef.current = new Audio();
-    const audio = audioRef.current;
-    audio.src = track.previewUrl;
-    audio.play().catch(() => showMsg('Preview unavailable'));
-
-    const onEnded = () => advance(playingSide, playingIndex);
-    audio.addEventListener('ended', onEnded);
-    return () => audio.removeEventListener('ended', onEnded);
+    yt.play(track.ytId);
   }, [playing, playingSide, playingIndex, tracksA, tracksB]); // eslint-disable-line
-
-  useEffect(() => () => audioRef.current?.pause(), []);
-
-  function advance(side, idx) {
-    const tracks = side === 'A' ? tracksA : tracksB;
-    if (idx + 1 < tracks.length) {
-      setPlayingIndex(idx + 1);
-    } else if (side === 'A' && tracksB.length > 0) {
-      showMsg('🎵 Flipping to Side B…');
-      setPlayingSide('B');
-      setPlayingIndex(0);
-    } else {
-      setPlaying(false);
-      setPlayingIndex(0);
-      showMsg('🎵 End of tape');
-    }
-  }
 
   function handlePlay() {
     if (playing) {
       setPlaying(false);
       setPlayingIndex(0);
-      audioRef.current?.pause();
     } else {
       setPlayingSide('A');
       setPlayingIndex(0);
@@ -116,6 +100,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const nowPlaying = playing
     ? (playingSide === 'A' ? tracksA : tracksB)[playingIndex]
     : null;
+  const canPlay = enriched && yt.ready;
 
   return (
     <div className="player">
@@ -153,6 +138,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
             />
           </div>
 
+          {/* YouTube screen — visible while playing (kept in DOM so the player can attach) */}
+          <div className={`yt-frame ${playing ? 'show' : ''}`}>
+            <div id="yt-player-recipient" />
+          </div>
+
           {/* Now playing */}
           {nowPlaying && (
             <div className="now-playing">
@@ -169,9 +159,9 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
             <button
               className={`play-btn ${playing ? 'playing' : ''}`}
               onClick={handlePlay}
-              disabled={!enriched}
+              disabled={!canPlay}
             >
-              {!enriched ? '⟳ Loading…' : playing ? '⏹ Stop' : '▶ Play Tape'}
+              {!canPlay ? '⟳ Loading…' : playing ? '⏹ Stop' : '▶ Play Tape'}
             </button>
             <button
               className={`view-btn ${showJCard ? 'active' : ''}`}

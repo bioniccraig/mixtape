@@ -5,6 +5,7 @@ import { TAPE_THEMES, MAX_SIDE_MS } from './constants';
 import CassetteSVG from './Cassette';
 import JCard from './JCard';
 import MatchModal from './MatchModal';
+import { useYouTube } from './useYouTube';
 import { buildShareUrl } from './share';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -108,56 +109,47 @@ export default function TapeBuilder({ onBack }) {
   const [toast,        setToast]        = useState(null);
   const [reviewing,    setReviewing]    = useState(null); // { side, id }
   const searchTimer = useRef(null);
-  const audioRef    = useRef(null);
 
   const sideAMs = sideA.reduce((t, x) => t + x.durationMs, 0);
   const sideBMs = sideB.reduce((t, x) => t + x.durationMs, 0);
 
-  // ── Audio playback ────────────────────────────────────────────────────────
+  // ── Advance (kept in a ref so the YouTube onEnded callback sees fresh state) ──
+  const advanceRef = useRef(() => {});
   useEffect(() => {
-    if (!playing) {
-      audioRef.current?.pause();
-      return;
-    }
-    const tracks = playingSide === 'A' ? sideA : sideB;
-    const track  = tracks[playingIndex];
+    advanceRef.current = () => {
+      const tracks = playingSide === 'A' ? sideA : sideB;
+      if (playingIndex + 1 < tracks.length) {
+        setPlayingIndex(playingIndex + 1);
+      } else {
+        setPlaying(false);
+        setPlayingIndex(0);
+        showToast(`End of Side ${playingSide}`);
+      }
+    };
+  });
+
+  const yt = useYouTube({
+    elementId: 'yt-player-builder',
+    onEnded: () => advanceRef.current(),
+  });
+
+  // ── YouTube playback ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!playing) { yt.stop(); return; }
+    const track = (playingSide === 'A' ? sideA : sideB)[playingIndex];
     if (!track) { setPlaying(false); return; }
-
-    if (!track.previewUrl) {
-      showToast(`No preview for "${track.title}" — skipping`);
-      advanceTrack(playingSide, playingIndex, sideA, sideB);
+    if (!track.ytId) {
+      showToast(`Skipping "${track.title}" — no match yet`);
+      advanceRef.current();
       return;
     }
-
-    if (!audioRef.current) audioRef.current = new Audio();
-    const audio = audioRef.current;
-    audio.src = track.previewUrl;
-    audio.play().catch(() => showToast('Preview unavailable'));
-
-    const onEnded = () => advanceTrack(playingSide, playingIndex, sideA, sideB);
-    audio.addEventListener('ended', onEnded);
-    return () => audio.removeEventListener('ended', onEnded);
-  }, [playing, playingSide, playingIndex]); // eslint-disable-line
-
-  // Cleanup audio on unmount
-  useEffect(() => () => audioRef.current?.pause(), []);
-
-  function advanceTrack(side, index, a, b) {
-    const tracks = side === 'A' ? a : b;
-    if (index + 1 < tracks.length) {
-      setPlayingIndex(index + 1);
-    } else {
-      setPlaying(false);
-      setPlayingIndex(0);
-      showToast(`End of Side ${side}`);
-    }
-  }
+    yt.play(track.ytId);
+  }, [playing, playingSide, playingIndex, sideA, sideB]); // eslint-disable-line
 
   function handlePlay() {
     if (playing) {
       setPlaying(false);
       setPlayingIndex(0);
-      audioRef.current?.pause();
     } else {
       const tracks = activeSide === 'A' ? sideA : sideB;
       if (tracks.length === 0) { showToast('Add some tracks first!'); return; }
@@ -245,7 +237,7 @@ export default function TapeBuilder({ onBack }) {
   ).length;
 
   function removeTrack(side, index) {
-    if (playing && side === playingSide) { setPlaying(false); audioRef.current?.pause(); }
+    if (playing && side === playingSide) { setPlaying(false); }
     if (side === 'A') setSideA(p => p.filter((_, i) => i !== index));
     else              setSideB(p => p.filter((_, i) => i !== index));
   }
@@ -356,6 +348,11 @@ export default function TapeBuilder({ onBack }) {
                 />
               </div>
 
+              {/* YouTube screen — visible while playing (kept in DOM so the player can attach) */}
+              <div className={`yt-frame ${playing ? 'show' : ''}`}>
+                <div id="yt-player-builder" />
+              </div>
+
               {/* Now playing ticker */}
               {playing && nowPlayingTrack && (
                 <div className="now-playing">
@@ -371,8 +368,9 @@ export default function TapeBuilder({ onBack }) {
                 <button
                   className={`play-btn ${playing ? 'playing' : ''}`}
                   onClick={handlePlay}
+                  disabled={!yt.ready && !playing}
                 >
-                  {playing ? '⏹ Stop' : `▶ Play Side ${activeSide}`}
+                  {!yt.ready && !playing ? '⟳ Loading…' : playing ? '⏹ Stop' : `▶ Play Side ${activeSide}`}
                 </button>
               </div>
 
