@@ -10,7 +10,7 @@ export const TAPE_SKINS = [
     body:  '/skins/rainbow.jpg',
     reelImgs: ['/skins/rainbow-reel-l.png', '/skins/rainbow-reel-r.png'],
     reels: [[0.3153, 0.5157], [0.6748, 0.5229]],
-    rad: 0.072,
+    rad: 0.052,
     label: { x: 0.52, y: 0.25, w: 0.58, color: '#26262b' },
   },
   {
@@ -19,7 +19,7 @@ export const TAPE_SKINS = [
     body:  '/skins/green.jpg',
     reelImgs: ['/skins/green-reel-l.png', '/skins/green-reel-r.png'],
     reels: [[0.3068, 0.5043], [0.6814, 0.5035]],
-    rad: 0.072,
+    rad: 0.052,
     label: { x: 0.55, y: 0.25, w: 0.55, color: '#26262b' },
   },
   {
@@ -28,7 +28,7 @@ export const TAPE_SKINS = [
     body:  '/skins/classic.jpg',
     reelImgs: ['/skins/classic-reel-l.png', '/skins/classic-reel-r.png'],
     reels: [[0.3177, 0.4987], [0.6796, 0.4988]],
-    rad: 0.072,
+    rad: 0.052,
     label: { x: 0.56, y: 0.235, w: 0.52, color: '#26262b' },
   },
 ];
