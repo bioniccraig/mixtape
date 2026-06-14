@@ -1,6 +1,7 @@
 // iTunes Store Search API — free, no auth required
 
-const ITUNES_API = 'https://itunes.apple.com/search';
+// Use same-origin Vercel proxy to avoid iOS Safari ITP blocking itunes.apple.com
+const ITUNES_API = 'https://mixtape-rho.vercel.app/itunes-search';
 
 export async function searchTracks(query) {
   if (!query.trim()) return [];
