@@ -8,6 +8,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const [tracksB,   setTracksB]   = useState(tape.sideB);
   const [enriched,  setEnriched]  = useState(false);
   const [playing,   setPlaying]   = useState(false);
+  const [paused,    setPaused]    = useState(false);
   const [playingSide,  setPlayingSide]  = useState('A');
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard, setShowJCard] = useState(false);
@@ -40,6 +41,10 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
     onEnded: () => advanceRef.current(),
   });
 
+  // Tracks the currently-loaded video so we only (re)load on an actual track change —
+  // not on pause/resume or unrelated re-renders.
+  const loadedIdRef = useRef(null);
+
   // ── Enrich: fetch artwork for the J-card (playback no longer needs previews) ──
   useEffect(() => {
     const all = [...tape.sideA, ...tape.sideB];
@@ -70,7 +75,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
 
   // ── Drive the YouTube engine off playback state ──
   useEffect(() => {
-    if (!playing) { yt.stop(); return; }
+    if (!playing) { yt.stop(); loadedIdRef.current = null; return; }
     const track = (playingSide === 'A' ? tracksA : tracksB)[playingIndex];
     if (!track) { setPlaying(false); return; }
     if (!track.ytId) {
@@ -78,17 +83,50 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
       advanceRef.current();
       return;
     }
+    if (loadedIdRef.current === track.ytId) return; // already loaded — don't restart
+    loadedIdRef.current = track.ytId;
     yt.play(track.ytId);
   }, [playing, playingSide, playingIndex, tracksA, tracksB]); // eslint-disable-line
 
-  function handlePlay() {
-    if (playing) {
-      setPlaying(false);
-      setPlayingIndex(0);
-    } else {
+  // Start, or pause/resume keeping position (no reload, so the spot is kept).
+  function togglePlayPause() {
+    if (!playing) {
       setPlayingSide('A');
       setPlayingIndex(0);
+      setPaused(false);
       setPlaying(true);
+    } else if (paused) {
+      yt.resume();
+      setPaused(false);
+    } else {
+      yt.pause();
+      setPaused(true);
+    }
+  }
+
+  function stop() {
+    setPlaying(false);
+    setPaused(false);
+    setPlayingIndex(0);
+    setPlayingSide('A');
+  }
+
+  function next() {
+    if (!playing) return;
+    setPaused(false);
+    advanceRef.current();
+  }
+
+  function prev() {
+    if (!playing) return;
+    setPaused(false);
+    if (playingIndex > 0) setPlayingIndex(playingIndex - 1);
+    else if (playingSide === 'B' && tracksA.length > 0) {
+      setPlayingSide('A');
+      setPlayingIndex(tracksA.length - 1);
+    } else {
+      // restart the first track
+      yt.play((playingSide === 'A' ? tracksA : tracksB)[0]?.ytId);
     }
   }
 
@@ -154,15 +192,22 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
             </div>
           )}
 
-          {/* Controls */}
-          <div className="player-controls">
+          {/* Transport controls */}
+          <div className="transport">
+            <button className="tp-btn" onClick={prev} disabled={!playing} title="Previous track">⏮</button>
             <button
-              className={`play-btn ${playing ? 'playing' : ''}`}
-              onClick={handlePlay}
+              className="tp-btn tp-main"
+              onClick={togglePlayPause}
               disabled={!canPlay}
+              title={!playing ? 'Play tape' : paused ? 'Resume' : 'Pause'}
             >
-              {!canPlay ? '⟳ Loading…' : playing ? '⏹ Stop' : '▶ Play Tape'}
+              {!canPlay ? '⟳' : !playing ? '▶' : paused ? '▶' : '⏸'}
             </button>
+            <button className="tp-btn" onClick={next} disabled={!playing} title="Next track">⏭</button>
+            <button className="tp-btn" onClick={stop} disabled={!playing} title="Stop">⏹</button>
+          </div>
+
+          <div className="player-controls">
             <button
               className={`view-btn ${showJCard ? 'active' : ''}`}
               onClick={() => setShowJCard(v => !v)}

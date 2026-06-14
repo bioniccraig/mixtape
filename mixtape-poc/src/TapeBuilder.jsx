@@ -103,6 +103,7 @@ export default function TapeBuilder({ onBack }) {
   const [results,      setResults]      = useState([]);
   const [searching,    setSearching]    = useState(false);
   const [playing,      setPlaying]      = useState(false);
+  const [paused,       setPaused]       = useState(false);
   const [playingSide,  setPlayingSide]  = useState('A');
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard,    setShowJCard]    = useState(false);
@@ -133,9 +134,12 @@ export default function TapeBuilder({ onBack }) {
     onEnded: () => advanceRef.current(),
   });
 
+  // Only (re)load on an actual track change — not on pause/resume or match updates.
+  const loadedIdRef = useRef(null);
+
   // ── YouTube playback ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!playing) { yt.stop(); return; }
+    if (!playing) { yt.stop(); loadedIdRef.current = null; return; }
     const track = (playingSide === 'A' ? sideA : sideB)[playingIndex];
     if (!track) { setPlaying(false); return; }
     if (!track.ytId) {
@@ -143,20 +147,45 @@ export default function TapeBuilder({ onBack }) {
       advanceRef.current();
       return;
     }
+    if (loadedIdRef.current === track.ytId) return; // already loaded — don't restart
+    loadedIdRef.current = track.ytId;
     yt.play(track.ytId);
   }, [playing, playingSide, playingIndex, sideA, sideB]); // eslint-disable-line
 
-  function handlePlay() {
-    if (playing) {
-      setPlaying(false);
-      setPlayingIndex(0);
-    } else {
+  function togglePlayPause() {
+    if (!playing) {
       const tracks = activeSide === 'A' ? sideA : sideB;
       if (tracks.length === 0) { showToast('Add some tracks first!'); return; }
       setPlayingSide(activeSide);
       setPlayingIndex(0);
+      setPaused(false);
       setPlaying(true);
+    } else if (paused) {
+      yt.resume();
+      setPaused(false);
+    } else {
+      yt.pause();
+      setPaused(true);
     }
+  }
+
+  function stopPlay() {
+    setPlaying(false);
+    setPaused(false);
+    setPlayingIndex(0);
+  }
+
+  function next() {
+    if (!playing) return;
+    setPaused(false);
+    advanceRef.current();
+  }
+
+  function prev() {
+    if (!playing) return;
+    setPaused(false);
+    if (playingIndex > 0) setPlayingIndex(playingIndex - 1);
+    else yt.play((playingSide === 'A' ? sideA : sideB)[0]?.ytId);
   }
 
   // ── Search ────────────────────────────────────────────────────────────────
@@ -364,14 +393,18 @@ export default function TapeBuilder({ onBack }) {
                 </div>
               )}
 
-              <div className="play-row">
+              <div className="transport">
+                <button className="tp-btn" onClick={prev} disabled={!playing} title="Previous track">⏮</button>
                 <button
-                  className={`play-btn ${playing ? 'playing' : ''}`}
-                  onClick={handlePlay}
+                  className="tp-btn tp-main"
+                  onClick={togglePlayPause}
                   disabled={!yt.ready && !playing}
+                  title={!playing ? `Play Side ${activeSide}` : paused ? 'Resume' : 'Pause'}
                 >
-                  {!yt.ready && !playing ? '⟳ Loading…' : playing ? '⏹ Stop' : `▶ Play Side ${activeSide}`}
+                  {!yt.ready && !playing ? '⟳' : !playing ? '▶' : paused ? '▶' : '⏸'}
                 </button>
+                <button className="tp-btn" onClick={next} disabled={!playing} title="Next track">⏭</button>
+                <button className="tp-btn" onClick={stopPlay} disabled={!playing} title="Stop">⏹</button>
               </div>
 
               <div className="theme-picker">
