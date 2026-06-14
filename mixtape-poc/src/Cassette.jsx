@@ -1,32 +1,16 @@
 import { getSkin } from './constants';
 
-// Photographic cassette skin: a body photo with the two reels overlaid as separate
-// images so they can spin in place during playback, and the tape name on the label.
+// Photographic cassette skin: a static body photo (reels included in the photo)
+// with the tape name printed on the label. Spinning overlay reels were reverted —
+// the crop-and-rotate looked off, so we keep the clean photo.
 // Accepts `skin` (id); falls back through `theme` for backwards-compatible callers.
-export default function CassetteSVG({ skin, theme, title, spinning }) {
+export default function CassetteSVG({ skin, theme, title }) {
   const s = getSkin(skin || theme);
   const name = (title || 'MY MIXTAPE').trim();
 
   return (
     <div className="cassette">
       <img className="cassette-body" src={s.body} alt="Cassette" draggable="false" />
-
-      {s.reels.map(([cx, cy], i) => (
-        <img
-          key={i}
-          className={`cassette-reel ${spinning ? 'spinning' : ''}`}
-          src={s.reelImgs[i]}
-          alt=""
-          draggable="false"
-          style={{
-            left:  `${(cx - s.rad) * 100}%`,
-            top:   `${(cy - s.rad * 1.5) * 100}%`,
-            width: `${s.rad * 2 * 100}%`,
-            animationDuration: i === 0 ? '2.4s' : '1.9s',
-          }}
-        />
-      ))}
-
       <div
         className="cassette-label"
         style={{
