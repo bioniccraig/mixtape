@@ -78,7 +78,10 @@ export function getSharedTape() {
   }
 }
 
-export function buildShareUrl(tapeState) {
-  const encoded = encodeTape(tapeState);
-  return `${window.location.origin}${window.location.pathname}#tape=${encoded}`;
+export function buildShareUrl({ tapeName, theme, sideA, sideB, note }) {
+  const encoded = encodeTape({ tapeName, theme, sideA, sideB, note });
+  const name    = encodeURIComponent(tapeName || 'A MixTape');
+  // Route through /api/tape so crawlers (WhatsApp, iMessage) see proper OG tags.
+  // Real users are immediately JS-redirected to /#tape= by the serverless function.
+  return `${window.location.origin}/api/tape?n=${name}&d=${encoded}`;
 }
