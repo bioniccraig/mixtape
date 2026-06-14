@@ -1,44 +1,40 @@
 import { TAPE_THEMES, MAX_SIDE_MS } from './constants';
 
-// Spokes radiating from the hub — make rotation clearly visible.
-function Spokes({ cx, cy, r, color }) {
-  const inner = 6;
-  return [0, 60, 120, 180, 240, 300].map(deg => {
-    const rad = (deg * Math.PI) / 180;
-    return (
-      <line
-        key={deg}
-        x1={cx + Math.cos(rad) * inner}
-        y1={cy + Math.sin(rad) * inner}
-        x2={cx + Math.cos(rad) * (r - 2)}
-        y2={cy + Math.sin(rad) * (r - 2)}
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    );
-  });
+// Build a gear/cog silhouette path — alternates between outer and inner radius
+// for each tooth. Used for both the reel hub edge and the central drive sprocket.
+function gearPath(cx, cy, teeth, rOut, rIn) {
+  const step = Math.PI / teeth;
+  let d = '';
+  for (let i = 0; i < teeth * 2; i++) {
+    const r = i % 2 === 0 ? rOut : rIn;
+    const a = i * step - Math.PI / 2;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+  }
+  return d + 'Z';
 }
 
-// One reel: a wound tape pack (radius grows with fill) + a toothed hub that spins.
+// One reel: wound tape pack (radius grows with fill) + a toothed cog hub with the
+// classic 6-prong drive sprocket in the centre. The cog teeth make spin obvious.
 function Reel({ cx, cy, pack, spinning, dur }) {
   return (
     <g>
       {/* tape pack — concentric rings read as wound tape */}
-      <circle cx={cx} cy={cy} r={pack} fill="#2b1c10" />
-      <circle cx={cx} cy={cy} r={pack} fill="none" stroke="#4a3320" strokeWidth="1" opacity="0.6" />
-      <circle cx={cx} cy={cy} r={(pack + 16) / 2} fill="none" stroke="#3a2716" strokeWidth="1" opacity="0.5" />
-      {/* spinning hub */}
+      <circle cx={cx} cy={cy} r={pack} fill="#241509" />
+      <circle cx={cx} cy={cy} r={pack} fill="none" stroke="#4a3320" strokeWidth="1.2" opacity="0.7" />
+      <circle cx={cx} cy={cy} r={(pack + 17) / 2} fill="none" stroke="#3a2716" strokeWidth="1" opacity="0.5" />
+
+      {/* spinning cog */}
       <g>
-        <circle cx={cx} cy={cy} r="16" fill="#e9e9ee" />
-        <circle cx={cx} cy={cy} r="16" fill="none" stroke="#b9b9c4" strokeWidth="1" />
-        <Spokes cx={cx} cy={cy} r={15} color="#9a9aa6" />
-        {/* sprocket teeth */}
-        {[0, 60, 120, 180, 240, 300].map(deg => {
-          const rad = (deg * Math.PI) / 180;
-          return <circle key={deg} cx={cx + Math.cos(rad) * 9} cy={cy + Math.sin(rad) * 9} r="2.1" fill="#6f6f7a" />;
-        })}
-        <circle cx={cx} cy={cy} r="4" fill="#2a2a31" />
+        {/* outer cog wheel (toothed) */}
+        <path d={gearPath(cx, cy, 14, 17, 14)} fill="#ededf2" stroke="#b7b7c2" strokeWidth="0.8" />
+        <circle cx={cx} cy={cy} r="12.5" fill="#f6f6f9" />
+        {/* central dark opening */}
+        <circle cx={cx} cy={cy} r="9.5" fill="#1c1c22" />
+        {/* 6-prong drive sprocket (the iconic cassette detail) */}
+        <path d={gearPath(cx, cy, 6, 9, 4.5)} fill="#3a3a45" />
+        <circle cx={cx} cy={cy} r="2.4" fill="#15151a" />
         {spinning && (
           <animateTransform
             attributeName="transform"
