@@ -154,7 +154,7 @@ export default function TapeBuilder({ onBack }) {
         const r = await searchTracks(search);
         setResults(r);
       } catch (err) {
-        showToast('Search error: ' + err.message);
+        showToast(`${err.name}: ${err.message}`);
         setResults([]);
       } finally {
         setSearching(false);
@@ -164,7 +164,7 @@ export default function TapeBuilder({ onBack }) {
 
   function showToast(msg) {
     setToast(msg);
-    setTimeout(() => setToast(null), 2800);
+    setTimeout(() => setToast(null), 6000);
   }
 
   function addTrack(track, side) {
