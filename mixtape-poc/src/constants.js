@@ -1,9 +1,40 @@
 export const MAX_SIDE_MS = 45 * 60 * 1000; // 45 minutes per side
 
-export const TAPE_THEMES = [
-  { id: 'yellow', label: 'Sony Yellow',   body: '#F5C400', reel: '#1a1a1a', label_bg: '#fff',    label_text: '#111' },
-  { id: 'clear',  label: 'Crystal Clear', body: '#c8e8f0', reel: '#2a2a2a', label_bg: '#fff',    label_text: '#111' },
-  { id: 'black',  label: 'Midnight',      body: '#1a1a2e', reel: '#444',    label_bg: '#e85d75', label_text: '#fff' },
-  { id: 'red',    label: 'Cherry Red',    body: '#c0392b', reel: '#1a1a1a', label_bg: '#fff',    label_text: '#111' },
-  { id: 'teal',   label: 'Ocean Teal',    body: '#1abc9c', reel: '#1a1a1a', label_bg: '#fff',    label_text: '#111' },
+// Photographic cassette skins. Each skin = a body photo + measured reel centres
+// (for the spinning overlay) and a label anchor (for the tape name).
+// Coordinates are fractions of the image (1536×1024, 3:2).
+export const TAPE_SKINS = [
+  {
+    id: 'rainbow',
+    name: 'Rainbow',
+    body:  '/skins/rainbow.jpg',
+    reelImgs: ['/skins/rainbow-reel-l.png', '/skins/rainbow-reel-r.png'],
+    reels: [[0.3153, 0.5157], [0.6748, 0.5229]],
+    rad: 0.072,
+    label: { x: 0.52, y: 0.25, w: 0.58, color: '#26262b' },
+  },
+  {
+    id: 'green',
+    name: 'Green',
+    body:  '/skins/green.jpg',
+    reelImgs: ['/skins/green-reel-l.png', '/skins/green-reel-r.png'],
+    reels: [[0.3068, 0.5043], [0.6814, 0.5035]],
+    rad: 0.072,
+    label: { x: 0.55, y: 0.25, w: 0.55, color: '#26262b' },
+  },
+  {
+    id: 'classic',
+    name: 'Classic',
+    body:  '/skins/classic.jpg',
+    reelImgs: ['/skins/classic-reel-l.png', '/skins/classic-reel-r.png'],
+    reels: [[0.3177, 0.4987], [0.6796, 0.4988]],
+    rad: 0.072,
+    label: { x: 0.56, y: 0.235, w: 0.52, color: '#26262b' },
+  },
 ];
+
+export const DEFAULT_SKIN = 'rainbow';
+
+export function getSkin(id) {
+  return TAPE_SKINS.find(s => s.id === id) || TAPE_SKINS[0];
+}

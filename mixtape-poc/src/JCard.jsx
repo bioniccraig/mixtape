@@ -1,5 +1,3 @@
-import { TAPE_THEMES } from './constants';
-
 function msToLabel(ms) {
   const m = Math.floor(ms / 60000);
   const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
@@ -19,16 +17,15 @@ function TrackLine({ track, index }) {
   );
 }
 
-export default function JCard({ tapeName, theme, sideA, sideB, note, onNoteChange, readOnly }) {
-  const t = TAPE_THEMES.find(x => x.id === theme) || TAPE_THEMES[0];
+export default function JCard({ tapeName, sideA, sideB, note, onNoteChange, readOnly }) {
   const totalA = sideA.reduce((s, x) => s + x.durationMs, 0);
   const totalB = sideB.reduce((s, x) => s + x.durationMs, 0);
 
   return (
     <div className="jcard">
-      {/* Banner strip in tape colour */}
-      <div className="jcard-banner" style={{ background: t.body }}>
-        <span className="jcard-title" style={{ color: t.label_text }}>
+      {/* Banner strip — cassette-label cream with a rainbow accent */}
+      <div className="jcard-banner">
+        <span className="jcard-title">
           {tapeName || 'MY MIXTAPE'}
         </span>
       </div>

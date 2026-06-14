@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchTracks } from './itunes';
 import { matchTrack } from './matching';
-import { TAPE_THEMES, MAX_SIDE_MS } from './constants';
+import { TAPE_SKINS, DEFAULT_SKIN, MAX_SIDE_MS } from './constants';
 import CassetteSVG from './Cassette';
 import JCard from './JCard';
 import MatchModal from './MatchModal';
@@ -93,7 +93,7 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck }
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function TapeBuilder({ onBack }) {
-  const [theme,        setTheme]        = useState('yellow');
+  const [skin,         setSkin]         = useState(DEFAULT_SKIN);
   const [tapeName,     setTapeName]     = useState('');
   const [note,         setNote]         = useState('');
   const [activeSide,   setActiveSide]   = useState('A');
@@ -288,7 +288,7 @@ export default function TapeBuilder({ onBack }) {
       );
       if (!ok) return;
     }
-    const url = buildShareUrl({ tapeName, theme, sideA, sideB, note });
+    const url = buildShareUrl({ tapeName, theme: skin, sideA, sideB, note });
     try {
       await navigator.clipboard.writeText(url);
       showToast('🔗 Link copied to clipboard!');
@@ -359,7 +359,6 @@ export default function TapeBuilder({ onBack }) {
           {showJCard ? (
             <JCard
               tapeName={tapeName}
-              theme={theme}
               sideA={sideA}
               sideB={sideB}
               note={note}
@@ -370,9 +369,7 @@ export default function TapeBuilder({ onBack }) {
             <>
               <div className="cassette-wrap">
                 <CassetteSVG
-                  theme={theme}
-                  sideAMs={sideAMs}
-                  sideBMs={sideBMs}
+                  skin={skin}
                   title={tapeName.toUpperCase() || 'MY MIXTAPE'}
                   spinning={playing}
                 />
@@ -408,15 +405,16 @@ export default function TapeBuilder({ onBack }) {
                 <button className="tp-btn" onClick={stopPlay} disabled={!playing} title="Stop">⏹</button>
               </div>
 
-              <div className="theme-picker">
-                {TAPE_THEMES.map(t => (
+              <div className="skin-picker">
+                {TAPE_SKINS.map(sk => (
                   <button
-                    key={t.id}
-                    className={`theme-dot ${theme === t.id ? 'active' : ''}`}
-                    style={{ background: t.body, border: `3px solid ${theme === t.id ? '#e85d75' : 'transparent'}` }}
-                    onClick={() => setTheme(t.id)}
-                    title={t.label}
-                  />
+                    key={sk.id}
+                    className={`skin-thumb ${skin === sk.id ? 'active' : ''}`}
+                    onClick={() => setSkin(sk.id)}
+                    title={sk.name}
+                  >
+                    <img src={sk.body} alt={sk.name} draggable="false" />
+                  </button>
                 ))}
               </div>
 

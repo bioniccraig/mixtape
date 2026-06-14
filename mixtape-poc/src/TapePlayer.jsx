@@ -14,9 +14,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const [showJCard, setShowJCard] = useState(false);
   const [toast,     setToast]     = useState(null);
 
-  const sideAMs = tape.sideA.reduce((t, x) => t + x.durationMs, 0);
-  const sideBMs = tape.sideB.reduce((t, x) => t + x.durationMs, 0);
-
   // ── Advance: kept in a ref so the YouTube onEnded callback always sees fresh state ──
   const advanceRef = useRef(() => {});
   useEffect(() => {
@@ -169,9 +166,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
           {/* Cassette */}
           <div className="cassette-wrap" style={{ maxWidth: 360, margin: '0 auto' }}>
             <CassetteSVG
-              theme={tape.theme}
-              sideAMs={sideAMs}
-              sideBMs={sideBMs}
+              skin={tape.theme}
               title={(tape.tapeName || 'MIXTAPE').toUpperCase()}
               spinning={playing}
             />
@@ -222,7 +217,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
           {showJCard && (
             <JCard
               tapeName={tape.tapeName}
-              theme={tape.theme}
               sideA={tracksA}
               sideB={tracksB}
               note={tape.note}

@@ -531,8 +531,8 @@ body {
 
 /* ── J-card ──────────────────────────────────────────────────────────── */
 .jcard { background: #f5f0e8; border-radius: 10px; overflow: hidden; font-family: Arial, sans-serif; color: #111; flex-shrink: 0; }
-.jcard-banner { padding: 10px 16px; display: flex; align-items: center; }
-.jcard-title { font-size: 15px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+.jcard-banner { padding: 10px 16px; display: flex; align-items: center; background: #efeada; border-bottom: 3px solid; border-image: linear-gradient(90deg,#e23b2e,#ef7d34,#f4c531,#3fae6b,#2f7fc0,#5a4b9c) 1; }
+.jcard-title { font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #26262b; }
 .jcard-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
 
 .jcard-sides { display: flex; }
@@ -820,6 +820,47 @@ body {
 .mm-result-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mm-result-title { font-size: 13px; font-weight: 600; color: #111; }
 .mm-result-channel { font-size: 12px; color: #777; }
+
+/* ── Photographic cassette skin ─────────────────────────────────────────────── */
+.cassette {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  aspect-ratio: 3 / 2;
+  container-type: inline-size;
+  filter: drop-shadow(0 12px 28px rgba(0,0,0,0.35));
+}
+.cassette-body { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; }
+.cassette-reel { position: absolute; height: auto; transform-origin: center center; will-change: transform; user-select: none; pointer-events: none; }
+.cassette-reel.spinning { animation-name: reelspin; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes reelspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.cassette-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 4.4cqw;
+  letter-spacing: 0.3px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* ── Skin picker (replaces colour dots) ─────────────────────────────────────── */
+.skin-picker { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
+.skin-thumb {
+  width: 76px; height: 51px; padding: 0;
+  border-radius: 6px; overflow: hidden;
+  border: 2px solid transparent; background: #222;
+  cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+}
+.skin-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.skin-thumb:hover { transform: scale(1.05); }
+.skin-thumb.active { border-color: #e85d75; box-shadow: 0 0 0 2px rgba(232,93,117,0.3); }
 
 /* ── YouTube playback screen ─────────────────────────────────────────────────── */
 /* Padding-ratio technique with an absolutely-positioned player — sizes reliably
