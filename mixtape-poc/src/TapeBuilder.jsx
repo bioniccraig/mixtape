@@ -132,6 +132,7 @@ export default function TapeBuilder({ onBack }) {
   const yt = useYouTube({
     elementId: 'yt-player-builder',
     onEnded: () => advanceRef.current(),
+    onError: () => { showToast('Skipping — this track can’t play here'); advanceRef.current(); },
   });
 
   // Only (re)load on an actual track change — not on pause/resume or match updates.

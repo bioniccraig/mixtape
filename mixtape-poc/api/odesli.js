@@ -47,6 +47,23 @@ async function tryOdesli(songUrl, country) {
   return { youtubeId, youtubeUrl: yt.url, title, artist, thumbnail, via: 'odesli' };
 }
 
+// Check whether a video is allowed to be embedded off-YouTube. Vevo/major-label
+// videos often return embeddable:false — they play on youtube.com but not in an app.
+async function isEmbeddable(id) {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key || !id) return true; // can't check → assume ok
+  try {
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=status&id=${id}&key=${key}`);
+    if (!r.ok) return true;
+    const data = await r.json();
+    const st = data.items?.[0]?.status;
+    if (!st) return true;
+    return st.embeddable !== false;
+  } catch {
+    return true;
+  }
+}
+
 async function tryYouTube(query) {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key || !query.trim()) return null;
@@ -87,6 +104,10 @@ export default async function handler(req, res) {
   try {
     if (songUrl) result = await tryOdesli(songUrl, country);
   } catch { /* fall through to YouTube */ }
+
+  // If Odesli's pick can't be embedded (e.g. Vevo), discard it and search for a
+  // playable alternative instead.
+  if (result && !(await isEmbeddable(result.youtubeId))) result = null;
 
   if (!result) {
     try {

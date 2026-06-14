@@ -24,11 +24,13 @@ function loadApi() {
 
 // elementId: id of the div the player mounts into (YT replaces it with an iframe).
 // onEnded: called when the current video finishes (drives auto-advance).
-export function useYouTube({ elementId, onEnded }) {
+export function useYouTube({ elementId, onEnded, onError }) {
   const playerRef = useRef(null);
   const [ready, setReady] = useState(false);
   const onEndedRef = useRef(onEnded);
+  const onErrorRef = useRef(onError);
   useEffect(() => { onEndedRef.current = onEnded; });
+  useEffect(() => { onErrorRef.current = onError; });
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +43,8 @@ export function useYouTube({ elementId, onEnded }) {
           onStateChange: e => {
             if (e.data === YT.PlayerState.ENDED) onEndedRef.current?.();
           },
+          // 101 & 150 = embedding disabled by owner (Vevo etc); 100 = removed; 2/5 = bad id/HTML5
+          onError: e => onErrorRef.current?.(e.data),
         },
       });
     });

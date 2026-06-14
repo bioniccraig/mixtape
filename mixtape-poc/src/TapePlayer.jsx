@@ -39,6 +39,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const yt = useYouTube({
     elementId: 'yt-player-recipient',
     onEnded: () => advanceRef.current(),
+    onError: () => { showMsg('Skipping — this track can’t play here'); advanceRef.current(); },
   });
 
   // Tracks the currently-loaded video so we only (re)load on an actual track change —
