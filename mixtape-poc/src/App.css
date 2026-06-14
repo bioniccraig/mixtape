@@ -70,6 +70,19 @@ body {
 }
 .btn-start:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(232,93,117,0.4); }
 
+.btn-saved-tape {
+  background: transparent;
+  border: 1px solid rgba(232,93,117,0.4);
+  color: #e85d75;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+.btn-saved-tape:hover { background: rgba(232,93,117,0.1); border-color: #e85d75; }
+
 .disclaimer { font-size: 13px; color: #555; }
 .error-msg  { color: #e85d75; font-size: 14px; }
 

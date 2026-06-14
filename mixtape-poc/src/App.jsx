@@ -4,72 +4,71 @@ import TapePlayer  from './TapePlayer';
 import { getSharedTape } from './share';
 import './App.css';
 
-// Check once on load whether the URL contains a shared tape
-const sharedTape = getSharedTape();
-
-// If no URL hash, check for a previously saved tape in localStorage
-function getSavedTape() {
-  if (sharedTape) return null; // URL always takes priority
+function readSavedTape() {
   try {
     const raw = localStorage.getItem('mixtape_saved');
     return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
-const savedTape = getSavedTape();
 
 function App() {
-  const [started, setStarted] = useState(false);
+  // Determine initial view from URL hash (checked once on mount)
+  const [view,    setView]    = useState(() => getSharedTape() ? 'player' : 'splash');
+  const [tape,    setTape]    = useState(() => getSharedTape());
+  const [isSaved, setIsSaved] = useState(false);
 
-  // ── Shared tape from URL hash ────────────────────────────────────────────────
-  if (sharedTape) {
+  // ── Tape player (shared link OR saved tape) ──────────────────────────────────
+  if (view === 'player' && tape) {
     return (
       <TapePlayer
-        tape={sharedTape}
-        isSaved={false}
+        tape={tape}
+        isSaved={isSaved}
         onMakeOwn={() => {
+          // Strip hash from URL without reloading, go back to splash
           window.history.replaceState({}, '', window.location.pathname);
-          window.location.reload();
+          setTape(null);
+          setIsSaved(false);
+          setView('splash');
         }}
-        onClearSaved={() => {}}
-      />
-    );
-  }
-
-  // ── Previously saved tape (persisted across navigation) ──────────────────────
-  if (savedTape) {
-    return (
-      <TapePlayer
-        tape={savedTape}
-        isSaved={true}
-        onMakeOwn={() => window.location.reload()}
         onClearSaved={() => {
           localStorage.removeItem('mixtape_saved');
-          window.location.reload();
+          setTape(null);
+          setIsSaved(false);
+          setView('splash');
         }}
       />
     );
   }
 
-  // ── Normal flow ─────────────────────────────────────────────────────────────
-  if (!started) {
-    return (
-      <div className="splash">
-        <div className="logo">
-          <span className="logo-icon">◼</span>
-          <span className="logo-text">MixTape</span>
-        </div>
-        <p className="tagline">Say It With Music</p>
-        <button className="btn-start" onClick={() => setStarted(true)}>
-          Make a Tape
-        </button>
-        <p className="disclaimer">Search any song from the iTunes catalogue — no login needed</p>
-      </div>
-    );
+  // ── Tape builder ─────────────────────────────────────────────────────────────
+  if (view === 'builder') {
+    return <TapeBuilder onBack={() => setView('splash')} />;
   }
 
-  return <TapeBuilder onBack={() => setStarted(false)} />;
+  // ── Splash ───────────────────────────────────────────────────────────────────
+  const savedTape = readSavedTape();
+
+  return (
+    <div className="splash">
+      <div className="logo">
+        <span className="logo-icon">◼</span>
+        <span className="logo-text">MixTape</span>
+      </div>
+      <p className="tagline">Say It With Music</p>
+      <button className="btn-start" onClick={() => setView('builder')}>
+        Make a Tape
+      </button>
+      {savedTape && (
+        <button
+          className="btn-saved-tape"
+          onClick={() => { setTape(savedTape); setIsSaved(true); setView('player'); }}
+        >
+          📼 View your saved tape
+        </button>
+      )}
+      <p className="disclaimer">Search any song from the iTunes catalogue — no login needed</p>
+    </div>
+  );
 }
 
 export default App;
