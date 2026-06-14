@@ -2,12 +2,12 @@
 // Format: http://.../#tape=BASE64
 
 function slim(tracks) {
+  // Intentionally omit artwork URL and album — they're long CDN strings that bloat the URL.
+  // TapePlayer re-fetches them from iTunes on load via /api/itunes-lookup.
   return tracks.map(t => ({
     i:  t.id,
     ti: t.title,
     ar: t.artist,
-    al: t.album  || '',
-    aw: t.artwork || '',
     d:  t.durationMs,
     dl: t.durationLabel,
   }));
@@ -18,10 +18,11 @@ function inflate(arr) {
     id:            t.i,
     title:         t.ti,
     artist:        t.ar,
-    album:         t.al,
-    artwork:       t.aw,
+    album:         t.al || '',   // backwards-compat with old shares
+    artwork:       t.aw  || null, // backwards-compat; null = TapePlayer will fetch
     durationMs:    t.d,
     durationLabel: t.dl,
+    previewUrl:    null,          // always fetch fresh
   }));
 }
 

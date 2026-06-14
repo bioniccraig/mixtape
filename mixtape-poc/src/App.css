@@ -563,6 +563,8 @@ body {
 }
 .player-card { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
 .player-intro { text-align: center; color: #888; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+.saved-banner { display: flex; align-items: center; justify-content: space-between; background: rgba(232,93,117,0.15); border: 1px solid rgba(232,93,117,0.3); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #e85d75; }
+.clear-saved-btn { background: none; border: none; color: #e85d75; cursor: pointer; font-size: 12px; opacity: 0.7; padding: 0 0 0 8px; }
 .player-controls { display: flex; gap: 8px; }
 .player-sides { display: flex; gap: 12px; }
 .player-side { flex: 1; background: #f5f0e8; border-radius: 8px; padding: 10px 12px; }
