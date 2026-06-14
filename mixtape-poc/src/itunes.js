@@ -1,7 +1,8 @@
 // iTunes Store Search API — free, no auth required
 // Proxied through Vercel to avoid iOS Safari cross-origin restrictions
 
-const ITUNES_PROXY = 'https://mixtape-rho.vercel.app/itunes-search';
+// Relative URL — works on any domain, handled by Vercel serverless function
+const ITUNES_PROXY = '/api/itunes-search';
 
 export function searchTracks(query) {
   if (!query.trim()) return Promise.resolve([]);
