@@ -1,6 +1,7 @@
 // iTunes Store Search API — free, no auth required
 
-const ITUNES_API = 'https://itunes.apple.com/search';
+// Proxied through Vercel to avoid iOS Safari cross-origin blocking
+const ITUNES_API = '/itunes-search';
 
 export async function searchTracks(query) {
   if (!query.trim()) return [];
