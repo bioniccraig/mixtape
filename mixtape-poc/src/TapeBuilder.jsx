@@ -153,6 +153,9 @@ export default function TapeBuilder({ onBack }) {
       try {
         const r = await searchTracks(search);
         setResults(r);
+      } catch (err) {
+        showToast('Search error: ' + err.message);
+        setResults([]);
       } finally {
         setSearching(false);
       }
