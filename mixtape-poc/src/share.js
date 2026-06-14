@@ -26,6 +26,26 @@ function inflate(arr) {
   }));
 }
 
+// Encode: JSON → UTF-8 bytes → base64
+// Avoids encodeURIComponent which bloats the string 2-3x before base64.
+function toBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+// Decode: base64 → bytes → UTF-8 string
+// Falls back to the old encodeURIComponent format for backwards compatibility.
+function fromBase64(encoded) {
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const str = new TextDecoder().decode(bytes);
+  // Old format started with '%7B' (URL-encoded '{'); new format starts with '{'
+  return str.startsWith('{') ? str : decodeURIComponent(str);
+}
+
 export function encodeTape({ tapeName, theme, sideA, sideB, note }) {
   const payload = {
     n:  tapeName || '',
@@ -34,11 +54,11 @@ export function encodeTape({ tapeName, theme, sideA, sideB, note }) {
     a:  slim(sideA),
     b:  slim(sideB),
   };
-  return btoa(encodeURIComponent(JSON.stringify(payload)));
+  return toBase64(JSON.stringify(payload));
 }
 
 export function decodeTape(encoded) {
-  const raw = JSON.parse(decodeURIComponent(atob(encoded)));
+  const raw = JSON.parse(fromBase64(encoded));
   return {
     tapeName: raw.n  || '',
     theme:    raw.t  || 'yellow',
