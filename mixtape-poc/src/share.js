@@ -4,12 +4,14 @@
 function slim(tracks) {
   // Intentionally omit artwork URL and album — they're long CDN strings that bloat the URL.
   // TapePlayer re-fetches them from iTunes on load via /api/itunes-lookup.
+  // `y` carries the matched YouTube video id so the recipient can play the full track.
   return tracks.map(t => ({
     i:  t.id,
     ti: t.title,
     ar: t.artist,
     d:  t.durationMs,
     dl: t.durationLabel,
+    ...(t.ytId ? { y: t.ytId } : {}),
   }));
 }
 
@@ -23,6 +25,9 @@ function inflate(arr) {
     durationMs:    t.d,
     durationLabel: t.dl,
     previewUrl:    null,          // always fetch fresh
+    ytId:          t.y || null,   // YouTube match for full-track playback
+    ytStatus:      t.y ? 'ok' : 'none',
+    ytConfirmed:   !!t.y,
   }));
 }
 

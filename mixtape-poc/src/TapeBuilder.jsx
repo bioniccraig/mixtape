@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchTracks } from './itunes';
+import { matchTrack } from './matching';
 import { TAPE_THEMES, MAX_SIDE_MS } from './constants';
 import CassetteSVG from './Cassette';
 import JCard from './JCard';
+import MatchModal from './MatchModal';
 import { buildShareUrl } from './share';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -49,8 +51,27 @@ function TrackRow({ track, onAdd, disabled }) {
   );
 }
 
+// ── Match badge — shows the YouTube-match state of a track ──────────────────────
+function MatchBadge({ track, onCheck }) {
+  const status = track.ytStatus || 'pending';
+  let cls = 'match-badge', icon, title;
+  if (status === 'none') { cls += ' none'; icon = '!'; title = 'No match — tap to fix'; }
+  else if (status === 'error') { cls += ' none'; icon = '↻'; title = 'Match failed — tap to retry'; }
+  else if (status === 'ok' && track.ytConfirmed) { cls += ' confirmed'; icon = '✓'; title = 'Match confirmed'; }
+  else if (status === 'ok') { cls += ' ok'; icon = '✓'; title = 'Matched — tap to check'; }
+  else { cls += ' pending'; icon = '⟳'; title = 'Finding a match…'; }
+  return (
+    <button
+      className={cls}
+      title={title}
+      onClick={onCheck}
+      disabled={status === 'pending'}
+    >{icon}</button>
+  );
+}
+
 // ── Tape track (on the tape) ──────────────────────────────────────────────────
-function TapeTrack({ track, index, onRemove, onMove, total, isPlaying }) {
+function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck }) {
   return (
     <div className={`tape-track ${isPlaying ? 'tape-track-playing' : ''}`}>
       <span className="tape-track-num">{isPlaying ? '▶' : index + 1}</span>
@@ -58,6 +79,7 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying }) {
         <span className="tape-track-title">{track.title}</span>
         <span className="tape-track-artist">{track.artist}</span>
       </div>
+      <MatchBadge track={track} onCheck={onCheck} />
       <span className="tape-track-dur">{track.durationLabel}</span>
       <div className="tape-track-controls">
         <button onClick={() => onMove(index, -1)} disabled={index === 0}           className="move-btn">↑</button>
@@ -84,6 +106,7 @@ export default function TapeBuilder({ onBack }) {
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard,    setShowJCard]    = useState(false);
   const [toast,        setToast]        = useState(null);
+  const [reviewing,    setReviewing]    = useState(null); // { side, id }
   const searchTimer = useRef(null);
   const audioRef    = useRef(null);
 
@@ -167,6 +190,28 @@ export default function TapeBuilder({ onBack }) {
     setTimeout(() => setToast(null), 6000);
   }
 
+  // Update the match fields of one track on a given side (by track id).
+  function patchTrack(side, id, fields) {
+    const setter = side === 'A' ? setSideA : setSideB;
+    setter(p => p.map(t => (t.id === id ? { ...t, ...fields } : t)));
+  }
+
+  // Resolve a track to its YouTube match in the background, then store the result.
+  async function resolveMatch(track, side) {
+    try {
+      const m = await matchTrack(track);
+      patchTrack(side, track.id, {
+        ytId: m.youtubeId || null,
+        ytTitle: m.title || '',
+        ytChannel: m.artist || '',
+        ytStatus: m.youtubeId ? 'ok' : 'none',
+        ytConfirmed: false,
+      });
+    } catch {
+      patchTrack(side, track.id, { ytStatus: 'error' });
+    }
+  }
+
   function addTrack(track, side) {
     const current = side === 'A' ? sideA : sideB;
     const usedMs  = current.reduce((t, x) => t + x.durationMs, 0);
@@ -176,11 +221,28 @@ export default function TapeBuilder({ onBack }) {
     if (usedMs + track.durationMs > MAX_SIDE_MS) {
       showToast(`Side ${side} is full — remove a track or try the other side`); return;
     }
-    if (side === 'A') setSideA(p => [...p, track]);
-    else              setSideB(p => [...p, track]);
+    const withMatch = { ...track, ytStatus: 'pending', ytConfirmed: false };
+    if (side === 'A') setSideA(p => [...p, withMatch]);
+    else              setSideB(p => [...p, withMatch]);
     setActiveSide(side);
     showToast(`Added "${track.title}" to Side ${side}`);
+    resolveMatch(track, side);
   }
+
+  // Retry matching for a track that errored, before opening the review modal.
+  function openReview(side, track) {
+    if (track.ytStatus === 'error') resolveMatch(track, side);
+    setReviewing({ side, id: track.id });
+  }
+
+  const reviewingTrack = reviewing
+    ? (reviewing.side === 'A' ? sideA : sideB).find(t => t.id === reviewing.id)
+    : null;
+
+  // Count tracks that still need attention before a clean send.
+  const needsAttention = [...sideA, ...sideB].filter(
+    t => t.ytStatus === 'none' || t.ytStatus === 'error'
+  ).length;
 
   function removeTrack(side, index) {
     if (playing && side === playingSide) { setPlaying(false); audioRef.current?.pause(); }
@@ -198,6 +260,12 @@ export default function TapeBuilder({ onBack }) {
   }
 
   async function handleShare() {
+    if (needsAttention > 0) {
+      const ok = window.confirm(
+        `${needsAttention} track${needsAttention !== 1 ? 's' : ''} ${needsAttention !== 1 ? 'don’t' : 'doesn’t'} have a playable match yet and won’t play for the recipient. Tap the ! badge to fix, or share anyway?`
+      );
+      if (!ok) return;
+    }
     const url = buildShareUrl({ tapeName, theme, sideA, sideB, note });
     try {
       await navigator.clipboard.writeText(url);
@@ -346,6 +414,7 @@ export default function TapeBuilder({ onBack }) {
                   isPlaying={playing && playingSide === activeSide && playingIndex === i}
                   onRemove={idx => removeTrack(activeSide, idx)}
                   onMove={(idx, dir) => moveTrack(activeSide, idx, dir)}
+                  onCheck={() => openReview(activeSide, t)}
                 />
               ))
             }
@@ -377,6 +446,18 @@ export default function TapeBuilder({ onBack }) {
           </div>
         </div>
       </div>
+
+      {reviewingTrack && (
+        <MatchModal
+          track={reviewingTrack}
+          side={reviewing.side}
+          onClose={() => setReviewing(null)}
+          onConfirm={fields => {
+            patchTrack(reviewing.side, reviewing.id, fields);
+            setReviewing(null);
+          }}
+        />
+      )}
 
       {toast && <div className="toast">{toast}</div>}
     </div>
