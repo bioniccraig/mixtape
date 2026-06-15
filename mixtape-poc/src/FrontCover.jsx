@@ -37,56 +37,58 @@ export default function FrontCover({
 
   return (
     <>
-      <div className="front-cover" style={hasPhoto ? {} : bgStyle}>
+      <div className="front-cover-wrap">
+        <div className="front-cover" style={hasPhoto ? {} : bgStyle}>
 
-        {/* ── Uploaded cover photo ── */}
-        {hasPhoto && (
-          <img className="fc-photo" src={coverImageUrl} alt="Cover" />
-        )}
+          {/* ── Uploaded cover photo ── */}
+          {hasPhoto && (
+            <img className="fc-photo" src={coverImageUrl} alt="Cover" />
+          )}
 
-        {/* ── Auto-art: blurred background + centred album art ── */}
-        {hasArt && (
-          <>
-            <img className="fc-auto-art-bg" src={autoArtUrl} alt="" aria-hidden />
-            <div className="fc-auto-art-centre">
-              <img src={autoArtUrl} alt="Album art" />
-            </div>
-          </>
-        )}
+          {/* ── Auto-art: blurred background + centred album art ── */}
+          {hasArt && (
+            <>
+              <img className="fc-auto-art-bg" src={autoArtUrl} alt="" aria-hidden />
+              <div className="fc-auto-art-centre">
+                <img src={autoArtUrl} alt="Album art" />
+              </div>
+            </>
+          )}
 
-        {/* ── Tape name overlay ── */}
-        <div className="fc-name-bar">
-          {tapeName || 'MY MIXTAPE'}
+          {/* ── Tape name overlay ── */}
+          <div className="fc-name-bar">
+            {tapeName || 'MY MIXTAPE'}
+          </div>
+
+          {/* ── Edit controls (builder only) ── */}
+          {editable && (
+            <>
+              <label className="fc-upload-btn">
+                📷 {hasPhoto ? 'Change photo' : 'Add photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f && onPhotoChange) onPhotoChange(f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+
+              {hasPhoto && (
+                <button
+                  className="fc-remove-btn"
+                  onClick={() => onPhotoChange && onPhotoChange(null)}
+                  title="Remove photo"
+                >
+                  ✕
+                </button>
+              )}
+            </>
+          )}
         </div>
-
-        {/* ── Edit controls (builder only) ── */}
-        {editable && (
-          <>
-            <label className="fc-upload-btn">
-              📷 {hasPhoto ? 'Change photo' : 'Add photo'}
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f && onPhotoChange) onPhotoChange(f);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-
-            {hasPhoto && (
-              <button
-                className="fc-remove-btn"
-                onClick={() => onPhotoChange && onPhotoChange(null)}
-                title="Remove photo"
-              >
-                ✕
-              </button>
-            )}
-          </>
-        )}
       </div>
 
       {/* ── Colour swatches — shown below cover when editable + no photo ── */}

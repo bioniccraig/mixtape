@@ -1546,17 +1546,27 @@ body {
 
 
 /* ── Front Cover ─────────────────────────────────────────────────────────────── */
-.front-cover {
-  position: relative;
+/* Padding-ratio wrapper — same reliable technique as .yt-frame.
+   aspect-ratio: 1/1 collapses to a sliver inside flex columns (Chrome + Safari bug).
+   padding-bottom % is relative to the containing block's width, so
+   min(100%, 360px) = own width when parent ≥ 360 px, or parent width otherwise → square. */
+.front-cover-wrap {
   width: 100%;
   max-width: 360px;
-  aspect-ratio: 1 / 1;
+  margin: 0 auto 8px;
+  flex-shrink: 0;
+  position: relative;
+  height: 0;
+  padding-bottom: min(100%, 360px);
+}
+
+.front-cover {
+  position: absolute;
+  inset: 0;
   border-radius: 8px;
   overflow: hidden;
-  margin: 0 auto 8px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   background: #1a1a2e;
-  flex-shrink: 0; /* hold size when sibling content grows — panel scrolls instead */
 }
 
 /* Uploaded photo — full bleed */
