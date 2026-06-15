@@ -175,14 +175,10 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     if (!track) { setPlaying(false); return; }
 
     if (engine === 'apple') {
-      if (!track.id) {
-        showToast(`Skipping "${track.title}" — no Apple Music ID`);
-        advanceRef.current();
-        return;
-      }
-      if (loadedIdRef.current === `am:${track.id}`) return;
-      loadedIdRef.current = `am:${track.id}`;
-      am.play(track.id);
+      const amKey = `am:${track.title}|${track.artist}`;
+      if (loadedIdRef.current === amKey) return;
+      loadedIdRef.current = amKey;
+      am.play(track.title, track.artist);
     } else {
       if (!track.ytId) {
         showToast(`Skipping "${track.title}" — no match yet`);

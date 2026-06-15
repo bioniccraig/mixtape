@@ -132,15 +132,10 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     if (!track) { setPlaying(false); return; }
 
     if (engine === 'apple') {
-      // Apple Music uses the iTunes track id directly
-      if (!track.id) {
-        showMsg(`Skipping "${track.title}" — no Apple Music ID`);
-        advanceRef.current();
-        return;
-      }
-      if (loadedIdRef.current === `am:${track.id}`) return;
-      loadedIdRef.current = `am:${track.id}`;
-      am.play(track.id);
+      const amKey = `am:${track.title}|${track.artist}`;
+      if (loadedIdRef.current === amKey) return;
+      loadedIdRef.current = amKey;
+      am.play(track.title, track.artist);
     } else {
       // YouTube
       if (!track.ytId) {

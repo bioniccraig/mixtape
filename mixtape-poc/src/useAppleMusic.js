@@ -10,6 +10,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 let configured = false;
 let configPromise = null;
 
+// ── iTunes catalog ID cache ───────────────────────────────────────────────────
+// We now search via Deezer (better results) but Apple Music needs an iTunes
+// trackId. We resolve it lazily at play time by searching iTunes for the
+// track title + artist, then cache so each track is only looked up once.
+const itunesIdCache = new Map(); // "title|artist" → iTunes trackId string
+
 async function ensureConfigured() {
   if (configured) return;
   if (configPromise) return configPromise;
@@ -122,10 +128,38 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   }
 
   // ── Playback controls (same interface as useYouTube) ─────────────────────
-  const play = useCallback(async (trackId) => {
+  // play(title, artist) — resolves the Apple Music catalog ID from iTunes
+  // at play time using title + artist, then caches it for the session.
+  const play = useCallback(async (title, artist) => {
     try {
       const music = MusicKit.getInstance();
-      await music.setQueue({ songs: [String(trackId)] });
+
+      // Check session cache first
+      const cacheKey = `${title}|${artist}`;
+      let catalogId = itunesIdCache.get(cacheKey);
+
+      if (!catalogId) {
+        const params = new URLSearchParams({
+          term: `${title} ${artist}`,
+          media: 'music',
+          entity: 'song',
+          limit: 5,
+        });
+        const res  = await fetch(`/api/itunes-search?${params}`);
+        const data = await res.json();
+        const lc   = s => (s || '').toLowerCase();
+
+        // Prefer exact title+artist match; fall back to first result
+        const match = (data.results || []).find(r =>
+          lc(r.trackName) === lc(title) && lc(r.artistName) === lc(artist)
+        ) || data.results?.[0];
+
+        if (!match) throw new Error(`"${title}" not found on Apple Music`);
+        catalogId = String(match.trackId);
+        itunesIdCache.set(cacheKey, catalogId);
+      }
+
+      await music.setQueue({ songs: [catalogId] });
       await music.play();
     } catch (err) {
       onErrorRef.current?.(err);
