@@ -138,8 +138,9 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   // DB state — populated when tape has been saved
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
   const [shareId,   setShareId]   = useState(initialTape?.shareId || null);
-  const [saveLabel, setSaveLabel] = useState('Save');      // 'Save' | 'Saving…' | 'Saved ✓' | 'Error'
-  const [shareLabel, setShareLabel] = useState('Share 🔗'); // 'Share 🔗' | 'Saving…' | 'Copied! 🔗'
+  const [saveLabel,     setSaveLabel]     = useState('Save');
+  const [shareLabel,    setShareLabel]    = useState('Copy link 🔗');
+  const [whatsAppLabel, setWhatsAppLabel] = useState('WhatsApp');
 
   const searchTimer = useRef(null);
 
@@ -417,42 +418,50 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   }
 
   // ── Share (publish + copy link) ──────────────────────────────────────────────
-  async function handleShare() {
+  // ── Shared publish helper — saves tape and returns the share URL ──────────
+  async function publishTape() {
     if (needsAttention > 0) {
       const ok = window.confirm(
-        `${needsAttention} track${needsAttention !== 1 ? 's' : ''} ${needsAttention !== 1 ? "don't" : "doesn't"} have a playable match yet and won't play for the recipient. Tap the ! badge to fix, or share anyway?`
+        `${needsAttention} track${needsAttention !== 1 ? 's' : ''} ${needsAttention !== 1 ? "don't" : "doesn't"} have a playable match yet. Tap the ! badge to fix, or share anyway?`
       );
-      if (!ok) return;
+      if (!ok) return null;
     }
-
-    // Not signed in — prompt sign in (no guest sharing)
     if (!user) {
       onSignInRequest();
-      showToast('Sign in to share your tape and get a link.');
-      return;
+      showToast('Sign in to share your tape.');
+      return null;
     }
-
-    // Signed in — upsert as published and copy short link
-    setShareLabel('Saving…');
     const { id, shareId: sid, error } = await upsertTape({
       id: dbTapeId, tapeName, skin, note, sideA, sideB,
       creatorId: user.id, status: 'published',
     });
-    if (error) {
-      setShareLabel('Share 🔗');
-      showToast(`Couldn't save tape: ${error}`);
-      return;
-    }
+    if (error) { showToast(`Couldn't save tape: ${error}`); return null; }
     setDbTapeId(id);
     setShareId(sid);
-    const url = `${window.location.origin}/t/${sid}`;
+    return `${window.location.origin}/t/${sid}`;
+  }
+
+  async function handleShare() {
+    setShareLabel('Saving…');
+    const url = await publishTape();
+    if (!url) { setShareLabel('Copy link 🔗'); return; }
     try {
       await navigator.clipboard.writeText(url);
     } catch {
       window.prompt('Copy this link:', url);
     }
     setShareLabel('Copied! 🔗');
-    setTimeout(() => setShareLabel('Share 🔗'), 2500);
+    setTimeout(() => setShareLabel('Copy link 🔗'), 2500);
+  }
+
+  async function handleWhatsApp() {
+    setWhatsAppLabel('Saving…');
+    const url = await publishTape();
+    if (!url) { setWhatsAppLabel('WhatsApp'); return; }
+    const name = tapeName ? `"${tapeName}"` : 'a mixtape';
+    const text = `I made you ${name} 🎵 Listen here: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    setWhatsAppLabel('WhatsApp');
   }
 
   const [mobilePanel, setMobilePanel] = useState('search');
@@ -492,6 +501,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
           {hasTracks && (
             <button className="share-btn" onClick={handleShare} title="Copy share link">
               {shareLabel}
+            </button>
+          )}
+          {hasTracks && (
+            <button className="whatsapp-btn" onClick={handleWhatsApp} title="Share via WhatsApp">
+              {whatsAppLabel}
             </button>
           )}
           <button className="logout-btn" onClick={onBack}>← Back</button>
