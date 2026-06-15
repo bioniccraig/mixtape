@@ -2,10 +2,12 @@
 // Used by TapePlayer to fetch artwork + previewUrls after loading a shared tape
 
 export default async function handler(req, res) {
-  const { id } = req.query;
+  const { id, entity } = req.query;
   if (!id) return res.status(400).json({ error: 'id required' });
 
-  const url = `https://itunes.apple.com/lookup?id=${id}`;
+  const params = new URLSearchParams({ id });
+  if (entity) params.set('entity', entity);
+  const url = `https://itunes.apple.com/lookup?${params}`;
   try {
     const r = await fetch(url);
     if (!r.ok) return res.status(r.status).json({ error: `iTunes returned ${r.status}` });
