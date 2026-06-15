@@ -222,7 +222,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {user && (
             <span className="auth-status-small">{user.email}</span>
           )}
-          <button className="share-btn" onClick={onMakeOwn}>
+          <button className="share-btn player-make-own-desktop" onClick={onMakeOwn}>
             Make Your Own ✦
           </button>
         </div>
@@ -346,6 +346,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           )}
         </div>
       </div>
+
+      {/* Floating "Make Your Own" — mobile only */}
+      <button className="fab-make-own" onClick={onMakeOwn}>
+        ✦ Make Your Own
+      </button>
 
       {toast && <div className="toast">{toast}</div>}
     </div>

@@ -522,23 +522,37 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             </button>
           )}
           {hasTracks && user && (
-            <button className="save-btn" onClick={handleSave} title="Save as draft">
+            <button className="save-btn hide-mobile" onClick={handleSave} title="Save as draft">
               {saveLabel}
             </button>
           )}
           {hasTracks && (
-            <button className="share-btn" onClick={handleShare} title="Copy share link">
+            <button className="share-btn hide-mobile" onClick={handleShare} title="Copy share link">
               {shareLabel}
             </button>
           )}
           {hasTracks && (
-            <button className="native-share-btn" onClick={handleNativeShare} title="Share">
+            <button className="native-share-btn hide-mobile" onClick={handleNativeShare} title="Share">
               {nativeLabel}
             </button>
           )}
-          <button className="logout-btn" onClick={onBack}>← Back</button>
+          <button className="logout-btn hide-mobile" onClick={onBack}>← Back</button>
         </div>
       </header>
+
+      {/* ── Mobile bottom action bar ── */}
+      <div className="mobile-action-bar">
+        <button className="mob-back-btn" onClick={onBack}>← Back</button>
+        {hasTracks && user && (
+          <button className="save-btn" onClick={handleSave}>{saveLabel}</button>
+        )}
+        {hasTracks && (
+          <button className="share-btn" onClick={handleShare}>{shareLabel}</button>
+        )}
+        {hasTracks && (
+          <button className="native-share-btn" onClick={handleNativeShare}>{nativeLabel}</button>
+        )}
+      </div>
 
       <div className="builder-body">
         {/* ── Mobile tab bar (hidden on desktop via CSS) ── */}

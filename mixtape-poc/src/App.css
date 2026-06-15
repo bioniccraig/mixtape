@@ -845,6 +845,15 @@ body {
 /* ── Mobile tab bar (hidden on desktop) ──────────────────────────────────── */
 .mobile-tabs { display: none; }
 
+/* ── Mobile action bar (hidden on desktop) ───────────────────────────────── */
+.mobile-action-bar { display: none; }
+
+/* ── Floating "Make Your Own" FAB — mobile only ──────────────────────────── */
+.fab-make-own { display: none; }
+
+/* ── Desktop: hide the "Make Your Own" button from header on player ───────── */
+/* (it's always visible in header on desktop, hidden on mobile) */
+
 /* ── Mobile layout ───────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   /* Builder: drop fixed height so page can scroll */
@@ -924,6 +933,60 @@ body {
   .logo-text  { font-size: 34px; }
   .logo-icon  { font-size: 38px; }
   .tagline    { font-size: 15px; }
+
+  /* Hide header buttons that move to the bottom bar */
+  .hide-mobile { display: none !important; }
+
+  /* ── Mobile bottom action bar (TapeBuilder) ──────────────────────── */
+  .mobile-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #111122;
+    border-top: 1px solid #2a2a3e;
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    flex-wrap: wrap;
+  }
+  .mob-back-btn {
+    background: transparent;
+    border: 1px solid #3a3a5e;
+    color: #aaa;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── Floating FAB (TapePlayer) ────────────────────────────────────── */
+  .fab-make-own {
+    display: block;
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #863bff;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 13px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(134,59,255,0.45);
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .fab-make-own:active { transform: translateX(-50%) scale(0.97); }
+
+  /* Hide "Make Your Own" from header on mobile (FAB replaces it) */
+  .player-make-own-desktop { display: none !important; }
+
+  /* Add bottom padding to player so FAB doesn't cover content */
+  .player-body { padding-bottom: 80px; }
 }
 
 /* ── Match badge (YouTube match state on a tape track) ───────────────────────── */
