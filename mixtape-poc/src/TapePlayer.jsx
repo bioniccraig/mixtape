@@ -63,6 +63,17 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [reviewingYt,    setReviewingYt]    = useState(null); // { track, side }
   const [reviewingApple, setReviewingApple] = useState(null); // { track, side }
 
+  // ── Show "saved" toast when user signs in while viewing a received tape ─────
+  // prevUserRef is initialised with the current user so first-render is skipped.
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    const prevUser = prevUserRef.current;
+    prevUserRef.current = user;
+    if (user && !prevUser && tape?.dbId && tape.creatorId !== user.id) {
+      showMsg('✅ Tape saved to your library!');
+    }
+  }, [user]); // eslint-disable-line
+
   // ── Analytics: fire tape_opened on mount ─────────────────────────────────
   useEffect(() => {
     if (!tape.shareId) return; // hash-based shares don't have a DB id yet

@@ -33,7 +33,7 @@ export default function App() {
   const [showAuth,     setShowAuth]     = useState(false);
   const [showLibrary,  setShowLibrary]  = useState(false);
 
-  // ── Fetch DB tape for /t/SHAREID ──────────────────────────────────────────
+  // ── Fetch DB tape for /t/SHAREID (runs once per shareId) ─────────────────
   useEffect(() => {
     if (!shareId) return;
     setTapeLoading(true);
@@ -41,17 +41,20 @@ export default function App() {
       if (t) {
         setTape(t);
         setView('player');
-        // Record view for received tapes — only if signed in and not your own tape
-        if (user && t.creatorId !== user.id) {
-          recordTapeView(t.dbId, user.id);
-        }
       } else {
         console.error('Failed to load tape:', error);
         setView('splash');
       }
       setTapeLoading(false);
     });
-  }, [shareId, user]); // eslint-disable-line
+  }, [shareId]); // eslint-disable-line
+
+  // ── Record view when user is available (sign-in after loading, or already signed in) ──
+  useEffect(() => {
+    if (!user || !tape?.dbId) return;
+    if (tape.creatorId && tape.creatorId === user.id) return; // own tape — don't record
+    recordTapeView(tape.dbId, user.id);
+  }, [user?.id, tape?.dbId]); // eslint-disable-line
 
   // ── Sign out ──────────────────────────────────────────────────────────────
   async function signOut() {

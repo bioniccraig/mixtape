@@ -180,15 +180,16 @@ export async function getReceivedTapes(userId) {
 // ── Internal: convert a DB tape row to the standard app tape format ───────────
 function _rowToTape(data) {
   return {
-    dbId:     data.id,
-    shareId:  data.share_id,
-    tapeName: data.tape_name,
-    theme:    data.skin,
-    skin:     data.skin,
-    note:     data.note,
-    status:   data.status,
-    sideA:    (data.tracks_a || []).map(rowToTrack),
-    sideB:    (data.tracks_b || []).map(rowToTrack),
+    dbId:      data.id,
+    shareId:   data.share_id,
+    creatorId: data.creator_id,
+    tapeName:  data.tape_name,
+    theme:     data.skin,
+    skin:      data.skin,
+    note:      data.note,
+    status:    data.status,
+    sideA:     (data.tracks_a || []).map(rowToTrack),
+    sideB:     (data.tracks_b || []).map(rowToTrack),
   };
 }
 
