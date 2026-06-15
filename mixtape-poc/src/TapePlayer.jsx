@@ -4,26 +4,36 @@ import JCard from './JCard';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
+import MatchModal from './MatchModal';
+import AppleMatchModal from './AppleMatchModal';
 import { logEvent, getTapeId } from './db';
 
-// ── Read-only match badge for received tapes ─────────────────────────────────
-function PlayerBadge({ track, engine }) {
+// ── Interactive match badge for received tapes ───────────────────────────────
+function PlayerBadge({ track, engine, onClick }) {
   const status = engine === 'apple' ? (track.appleStatus || 'pending') : (track.ytStatus || 'pending');
   const service = engine === 'apple' ? 'Apple Music' : 'YouTube';
 
-  if (status === 'pending') return null; // still resolving — don't show anything
+  if (status === 'pending') return null;
 
   let cls = 'match-badge' + (engine === 'apple' ? ' apple-badge' : '');
-  let icon;
-  if (status === 'ok')                    { cls += ' ok';   icon = '✓'; }
-  else if (status === 'none' || status === 'error') { cls += ' none'; icon = '!'; }
-  else                                    { return null; }
+  let icon, tip;
+  if (status === 'ok') {
+    cls += ' ok';
+    icon = '✓';
+    tip = `${service} match found — tap to review or change`;
+  } else if (status === 'none' || status === 'error') {
+    cls += ' none';
+    icon = '!';
+    tip = `No ${service} match — tap to find one`;
+  } else {
+    return null;
+  }
 
   return (
-    <span className={cls} title={status === 'ok' ? `${service} match found` : `No ${service} match`}>
+    <button className={cls} title={tip} onClick={onClick}>
       <span className="badge-service">{service}</span>
       <span className="badge-icon">{icon}</span>
-    </span>
+    </button>
   );
 }
 
@@ -50,6 +60,8 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [showJCard, setShowJCard] = useState(false);
   const [toast,     setToast]     = useState(null);
   const [engine,    setEngine]    = useState('youtube'); // 'youtube' | 'apple'
+  const [reviewingYt,    setReviewingYt]    = useState(null); // { track, side }
+  const [reviewingApple, setReviewingApple] = useState(null); // { track, side }
 
   // ── Analytics: fire tape_opened on mount ─────────────────────────────────
   useEffect(() => {
@@ -371,7 +383,14 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
                           <span className="jcard-track-title">{t.title}</span>
                           <span className="jcard-track-artist">{t.artist}</span>
                         </div>
-                        <PlayerBadge track={t} engine={engine} />
+                        <PlayerBadge
+                          track={t}
+                          engine={engine}
+                          onClick={() => {
+                            if (engine === 'apple') setReviewingApple({ track: t, side });
+                            else setReviewingYt({ track: t, side });
+                          }}
+                        />
                         <span className="jcard-track-dur">{t.durationLabel}</span>
                       </div>
                     ))
@@ -389,6 +408,43 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
       </button>
 
       {toast && <div className="toast">{toast}</div>}
+
+      {/* YouTube version review modal (local-only, not saved to DB) */}
+      {reviewingYt && (
+        <MatchModal
+          track={reviewingYt.track}
+          side={reviewingYt.side}
+          onClose={() => setReviewingYt(null)}
+          onConfirm={update => {
+            const { side: s, track: orig } = reviewingYt;
+            const apply = arr => arr.map(t =>
+              t === orig ? { ...t, ...update } : t
+            );
+            if (s === 'A') setTracksA(apply(tracksA));
+            else           setTracksB(apply(tracksB));
+            setReviewingYt(null);
+          }}
+        />
+      )}
+
+      {/* Apple Music version review modal (local-only, not saved to DB) */}
+      {reviewingApple && (
+        <AppleMatchModal
+          track={reviewingApple.track}
+          side={reviewingApple.side}
+          storefront={am.storefront}
+          onClose={() => setReviewingApple(null)}
+          onConfirm={update => {
+            const { side: s, track: orig } = reviewingApple;
+            const apply = arr => arr.map(t =>
+              t === orig ? { ...t, ...update } : t
+            );
+            if (s === 'A') setTracksA(apply(tracksA));
+            else           setTracksB(apply(tracksB));
+            setReviewingApple(null);
+          }}
+        />
+      )}
     </div>
   );
 }
