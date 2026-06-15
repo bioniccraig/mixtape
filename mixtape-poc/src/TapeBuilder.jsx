@@ -631,6 +631,15 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             />
           ) : (
             <>
+              {/* Cassette — shown below front cover in tape view */}
+              <div className="cassette-wrap">
+                <CassetteSVG
+                  skin={skin}
+                  title={tapeName}
+                  spinning={playing && !paused}
+                />
+              </div>
+
               {/* YouTube screen — only shown when using YouTube engine */}
               <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
                 <div id="yt-player-builder" />

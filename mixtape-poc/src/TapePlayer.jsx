@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import JCard from './JCard';
 import FrontCover from './FrontCover';
+import CassetteSVG from './Cassette';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
@@ -305,6 +306,15 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             autoArtUrl={autoArtUrl}
             editable={false}
           />
+
+          {/* Cassette — shown below front cover */}
+          <div className="cassette-wrap">
+            <CassetteSVG
+              skin={tape.skin || tape.theme}
+              title={tape.tapeName}
+              spinning={playing && !paused}
+            />
+          </div>
 
           {/* YouTube screen — only shown when using YouTube engine */}
           <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
