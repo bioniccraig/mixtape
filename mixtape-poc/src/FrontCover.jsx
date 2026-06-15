@@ -1,26 +1,15 @@
 // FrontCover.jsx
 // Always-visible cover for both builder (editable) and player (read-only).
-// Priority: uploaded photo → auto-art (first track's iTunes artwork) → colour/gradient fallback.
+// Priority: uploaded photo → auto-art (first track's iTunes artwork) → user colour → neutral dark.
 
-// Preset cover colours
+// Preset cover colours (user choice only — no auto-assigned skin gradients)
 const COVER_COLORS = [
-  '#0d0d0d', '#1a1a2e', '#533483', '#e94560',
-  '#c0392b', '#f5a623', '#1e8449', '#00b5ad',
+  '#1a1a2e', '#533483', '#e94560',
+  '#c0392b', '#f5a623', '#1e8449', '#00b5ad', '#0d0d0d',
 ];
-
-// Skin-based gradient when no photo, no auto-art, no explicit colour
-const SKIN_GRADIENTS = {
-  rainbow:  'linear-gradient(145deg, #e96c6c 0%, #e9c46a 50%, #52b788 100%)',
-  midnight: 'linear-gradient(145deg, #0d1b2a 0%, #1b4332 100%)',
-  chrome:   'linear-gradient(145deg, #8e9eab 0%, #d0d8dd 100%)',
-  cream:    'linear-gradient(145deg, #d4a373 0%, #f5e6ca 100%)',
-  neon:     'linear-gradient(145deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-  black:    'linear-gradient(145deg, #232526 0%, #414345 100%)',
-};
 
 export default function FrontCover({
   tapeName,
-  skin,
   coverImageUrl,
   coverColor,
   autoArtUrl,
@@ -28,9 +17,10 @@ export default function FrontCover({
   onPhotoChange,   // (File | null) => void
   onColorChange,   // (hexString) => void
 }) {
+  // Neutral dark default — auto-art or user colour sits on top
   const bgStyle = coverColor
     ? { background: coverColor }
-    : { background: SKIN_GRADIENTS[skin] || SKIN_GRADIENTS.rainbow };
+    : { background: '#1a1a2e' };
 
   const hasPhoto = !!coverImageUrl;
   const hasArt   = !hasPhoto && !!autoArtUrl;

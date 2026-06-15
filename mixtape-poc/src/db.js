@@ -40,6 +40,7 @@ function trackToRow(t) {
     id:            t.id,
     title:         t.title,
     artist:        t.artist,
+    artwork:       t.artwork      || null, // persist so recipients get auto-art without re-enrichment
     durationMs:    t.durationMs,
     durationLabel: t.durationLabel,
     platform_ids: {

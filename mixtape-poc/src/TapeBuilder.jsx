@@ -290,6 +290,15 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   async function handleCoverPhoto(file) {
     if (!file) { setCoverImageUrl(null); return; }
     if (!user) { onSignInRequest(); return; }
+    const MAX_MB = 15;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      showToast(`File too large — please pick an image under ${MAX_MB} MB`);
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      showToast('Only image files are supported for the cover');
+      return;
+    }
     setCoverUploading(true);
     showToast('Uploading cover photo…');
     const { url, error } = await uploadCoverPhoto(file, user.id);
@@ -606,7 +615,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
           {/* ── Front cover — always visible ── */}
           <FrontCover
             tapeName={tapeName}
-            skin={skin}
             coverImageUrl={coverUploading ? null : coverImageUrl}
             coverColor={coverColor}
             autoArtUrl={autoArtUrl}

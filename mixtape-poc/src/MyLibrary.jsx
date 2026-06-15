@@ -19,13 +19,63 @@ function trackCount(tape) {
   return a + b;
 }
 
-// ── Single tape card ───────────────────────────────────────────────────────────
-function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit, likeCount }) {
+function shareUrl(shareId) {
+  return `${window.location.origin}/t/${shareId}`;
+}
+
+// ── Sent tape card (published, locked) ────────────────────────────────────────
+function SentCard({ tape, onPreview, onDelete, likeCount }) {
+  const [confirming, setConfirming] = useState(false);
+  const [copied,     setCopied]     = useState(false);
+  const thumb = skinThumb(tape.skin);
+  const name  = tape.tape_name || tape.tapeName || 'Untitled tape';
+  const count = trackCount(tape);
+
+  function copyLink() {
+    navigator.clipboard.writeText(shareUrl(tape.share_id));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="lib-card lib-card-sent">
+      <div className="lib-card-thumb" onClick={() => onPreview(tape)} style={{ cursor: 'pointer' }}>
+        {thumb
+          ? <img src={thumb} alt={name} />
+          : <div className="lib-card-thumb-placeholder" />}
+      </div>
+      <div className="lib-card-info" onClick={() => onPreview(tape)} style={{ cursor: 'pointer' }}>
+        <span className="lib-card-name">{name}</span>
+        <span className="lib-card-meta">
+          {count} track{count !== 1 ? 's' : ''}
+          {likeCount > 0 && <span className="lib-like-count">❤️ {likeCount}</span>}
+        </span>
+        <span className="lib-card-date">{formatDate(tape.updated_at || tape.created_at)}</span>
+      </div>
+      <div className="lib-card-actions">
+        <button className="lib-btn lib-btn-play" onClick={() => onPreview(tape)} title="Preview as recipient">▶</button>
+        <button className="lib-btn lib-btn-copy" onClick={copyLink} title="Copy share link">
+          {copied ? '✓' : '🔗'}
+        </button>
+        {confirming ? (
+          <>
+            <button className="lib-btn lib-btn-confirm-del" onClick={() => onDelete(tape.id)}>Yes, delete</button>
+            <button className="lib-btn lib-btn-cancel" onClick={() => setConfirming(false)}>Cancel</button>
+          </>
+        ) : (
+          <button className="lib-btn lib-btn-del" onClick={() => setConfirming(true)} title="Delete">✕</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Draft tape card (editable) ────────────────────────────────────────────────
+function DraftCard({ tape, onEdit, onDelete }) {
   const [confirming, setConfirming] = useState(false);
   const thumb = skinThumb(tape.skin);
   const name  = tape.tape_name || tape.tapeName || 'Untitled tape';
   const count = trackCount(tape);
-  const isDraft = tape.status === 'draft';
 
   return (
     <div className="lib-card">
@@ -38,24 +88,12 @@ function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit, likeCount }) {
         <span className="lib-card-name">{name}</span>
         <span className="lib-card-meta">
           {count} track{count !== 1 ? 's' : ''}
-          {isDraft && <span className="lib-draft-badge">Draft</span>}
-          {!isDraft && likeCount > 0 && (
-            <span className="lib-like-count">❤️ {likeCount}</span>
-          )}
+          <span className="lib-draft-badge">Draft</span>
         </span>
         <span className="lib-card-date">{formatDate(tape.updated_at || tape.created_at)}</span>
       </div>
       <div className="lib-card-actions">
-        {!isDraft && (
-          <button className="lib-btn lib-btn-play" onClick={() => onPlay(tape)} title="Play">
-            ▶
-          </button>
-        )}
-        {showEdit && (
-          <button className="lib-btn lib-btn-edit" onClick={() => onEdit(tape)} title="Edit">
-            ✏
-          </button>
-        )}
+        <button className="lib-btn lib-btn-edit" onClick={() => onEdit(tape)} title="Edit">✏</button>
         {confirming ? (
           <>
             <button className="lib-btn lib-btn-confirm-del" onClick={() => onDelete(tape.id)}>Yes, delete</button>
@@ -64,6 +102,31 @@ function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit, likeCount }) {
         ) : (
           <button className="lib-btn lib-btn-del" onClick={() => setConfirming(true)} title="Delete">✕</button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Received tape card ────────────────────────────────────────────────────────
+function ReceivedCard({ tape, onPlay }) {
+  const thumb = skinThumb(tape.skin);
+  const name  = tape.tape_name || tape.tapeName || 'Untitled tape';
+  const count = trackCount(tape);
+
+  return (
+    <div className="lib-card" onClick={() => onPlay(tape)} style={{ cursor: 'pointer' }}>
+      <div className="lib-card-thumb">
+        {thumb
+          ? <img src={thumb} alt={name} />
+          : <div className="lib-card-thumb-placeholder" />}
+      </div>
+      <div className="lib-card-info">
+        <span className="lib-card-name">{name}</span>
+        <span className="lib-card-meta">{count} track{count !== 1 ? 's' : ''}</span>
+        <span className="lib-card-date">{formatDate(tape.updated_at || tape.created_at)}</span>
+      </div>
+      <div className="lib-card-actions">
+        <button className="lib-btn lib-btn-play" onClick={e => { e.stopPropagation(); onPlay(tape); }} title="Play">▶</button>
       </div>
     </div>
   );
@@ -89,7 +152,7 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
       setMyTapes(mine.tapes);
       setReceived(recv.tapes);
 
-      // Fetch like counts for creator's tapes
+      // Fetch like counts for published tapes
       const publishedIds = mine.tapes
         .filter(t => t.status === 'published')
         .map(t => t.id);
@@ -108,8 +171,8 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
     setMyTapes(prev => prev.filter(t => t.id !== tapeId));
   }
 
-  const isEmpty = tab === 'mine' ? myTapes.length === 0 : received.length === 0;
-  const list    = tab === 'mine' ? myTapes : received;
+  const sent   = myTapes.filter(t => t.status === 'published');
+  const drafts = myTapes.filter(t => t.status === 'draft');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -136,24 +199,60 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
         <div className="lib-list">
           {loading && <p className="lib-empty">Loading…</p>}
           {!loading && error && <p className="lib-empty" style={{ color: '#e85d75' }}>{error}</p>}
-          {!loading && !error && isEmpty && (
-            <p className="lib-empty">
-              {tab === 'mine'
-                ? "You haven't saved any tapes yet. Make one!"
-                : "No received tapes yet — share your link and ask someone to send you one."}
-            </p>
+
+          {/* ── My Tapes tab ── */}
+          {!loading && !error && tab === 'mine' && (
+            <>
+              {sent.length === 0 && drafts.length === 0 && (
+                <p className="lib-empty">You haven't saved any tapes yet. Make one!</p>
+              )}
+
+              {sent.length > 0 && (
+                <>
+                  <p className="lib-section-label">Sent</p>
+                  {sent.map(tape => (
+                    <SentCard
+                      key={tape.id}
+                      tape={tape}
+                      onPreview={t => { onPlay(t); onClose(); }}
+                      onDelete={handleDelete}
+                      likeCount={likeCounts[tape.id] || 0}
+                    />
+                  ))}
+                </>
+              )}
+
+              {drafts.length > 0 && (
+                <>
+                  <p className="lib-section-label">Drafts</p>
+                  {drafts.map(tape => (
+                    <DraftCard
+                      key={tape.id}
+                      tape={tape}
+                      onEdit={t => { onEdit(t); onClose(); }}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </>
+              )}
+            </>
           )}
-          {!loading && !error && list.map(tape => (
-            <TapeCard
-              key={tape.id}
-              tape={tape}
-              onPlay={t => { onPlay(t); onClose(); }}
-              onEdit={t => { onEdit(t); onClose(); }}
-              onDelete={handleDelete}
-              showEdit={tab === 'mine'}
-              likeCount={tab === 'mine' ? (likeCounts[tape.id] || 0) : 0}
-            />
-          ))}
+
+          {/* ── Received tab ── */}
+          {!loading && !error && tab === 'received' && (
+            <>
+              {received.length === 0 && (
+                <p className="lib-empty">No received tapes yet — share your link and ask someone to send you one.</p>
+              )}
+              {received.map(tape => (
+                <ReceivedCard
+                  key={tape.id}
+                  tape={tape}
+                  onPlay={t => { onPlay(t); onClose(); }}
+                />
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>

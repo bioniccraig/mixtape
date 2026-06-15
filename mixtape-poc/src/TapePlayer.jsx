@@ -301,7 +301,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {/* Front cover — always visible */}
           <FrontCover
             tapeName={tape.tapeName}
-            skin={tape.skin || tape.theme}
             coverImageUrl={tape.coverImageUrl}
             coverColor={tape.coverColor}
             autoArtUrl={autoArtUrl}
