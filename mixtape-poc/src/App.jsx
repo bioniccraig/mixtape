@@ -47,18 +47,11 @@ export default function App() {
   }
 
   // ── Open a tape from the library in the player ────────────────────────────
-  function openTapeInPlayer(libraryTape) {
-    // Convert library row format to player format if needed
-    const playerTape = {
-      dbId:     libraryTape.id       || libraryTape.dbId,
-      shareId:  libraryTape.share_id || libraryTape.shareId,
-      tapeName: libraryTape.tape_name || libraryTape.tapeName || '',
-      theme:    libraryTape.skin     || 'rainbow',
-      note:     libraryTape.note     || '',
-      sideA:    libraryTape.sideA    || [],
-      sideB:    libraryTape.sideB    || [],
-    };
-    setTape(playerTape);
+  async function openTapeInPlayer(libraryTape) {
+    const id = libraryTape.id || libraryTape.dbId;
+    const { tape: t, error } = await loadTapeById(id);
+    if (error || !t) { alert("Couldn't load tape"); return; }
+    setTape(t);
     setView('player');
   }
 
