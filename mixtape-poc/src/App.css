@@ -1425,3 +1425,86 @@ body {
 .lib-btn-del:hover { background: rgba(232,93,117,0.15); color: #e85d75; }
 .lib-btn-confirm-del { background: #e85d75; color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 6px; }
 .lib-btn-cancel { background: rgba(255,255,255,0.08); color: #aaa; font-size: 12px; padding: 6px 8px; border-radius: 6px; }
+
+/* ── Legal page ──────────────────────────────────────────────────────────── */
+.legal-page {
+  min-height: 100vh;
+  background: #0d0d1a;
+  color: #ccc;
+  font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif);
+}
+.legal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.legal-home {
+  color: #e85d75;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.05em;
+}
+.legal-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+.legal-body h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.legal-body h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 28px 0 8px;
+}
+.legal-body p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #bbb;
+  margin-bottom: 12px;
+}
+.legal-body ul {
+  margin: 0 0 12px 20px;
+}
+.legal-body ul li {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #bbb;
+  margin-bottom: 4px;
+}
+.legal-body a {
+  color: #e85d75;
+  text-decoration: none;
+}
+.legal-body a:hover { text-decoration: underline; }
+.legal-body code {
+  background: rgba(255,255,255,0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.legal-meta {
+  font-size: 13px !important;
+  color: #666 !important;
+  margin-bottom: 24px !important;
+}
+.legal-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: 48px 0;
+}
+.legal-footer {
+  padding: 24px;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.legal-footer a {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+}
+.legal-footer a:hover { color: #e85d75; }

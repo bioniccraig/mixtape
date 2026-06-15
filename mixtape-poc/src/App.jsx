@@ -4,6 +4,7 @@ import TapePlayer   from './TapePlayer';
 import CassetteSVG  from './Cassette';
 import AuthModal    from './AuthModal';
 import MyLibrary    from './MyLibrary';
+import Legal        from './Legal';
 import { getSharedTape } from './share';
 import { loadTapeByShareId, loadTapeById, recordTapeView } from './db';
 import { useAuth } from './useAuth';
@@ -18,6 +19,8 @@ function getShareIdFromPath() {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
+  // Render legal page immediately — no auth or state needed
+  if (window.location.pathname === '/legal') return <Legal />;
   const { user, loading: authLoading } = useAuth();
 
   const shareId  = getShareIdFromPath();
