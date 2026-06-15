@@ -1,12 +1,9 @@
 // Database helpers — all Supabase operations go here.
-// Every function returns null / falls back silently if supabase is not initialised
-// (e.g. missing env vars in local dev).
+// Every function returns null / falls back silently if supabase is not initialised.
 
 import { supabase } from './supabase';
 
 // ── Track serialisation ───────────────────────────────────────────────────────
-// Converts the internal track shape to the DB storage format.
-// We store platform_ids as a JSON object so adding Apple Music later is trivial.
 function trackToRow(t) {
   return {
     id:            t.id,
@@ -18,18 +15,17 @@ function trackToRow(t) {
       youtube:     t.ytId || null,
       // apple_music: null  ← slot ready for M2b
     },
-    ytConfirmed:   !!t.ytConfirmed,
+    ytConfirmed: !!t.ytConfirmed,
   };
 }
 
-// Converts a DB track row back to the internal TapePlayer/TapeBuilder shape.
 function rowToTrack(r) {
   return {
     id:            r.id,
     title:         r.title,
     artist:        r.artist,
-    album:         r.album   || '',
-    artwork:       r.artwork || null,
+    album:         r.album        || '',
+    artwork:       r.artwork      || null,
     durationMs:    r.durationMs,
     durationLabel: r.durationLabel,
     ytId:          r.platform_ids?.youtube || null,
@@ -40,33 +36,60 @@ function rowToTrack(r) {
 }
 
 
-// ── Save tape ─────────────────────────────────────────────────────────────────
-// Inserts a new tape row and returns { shareId, error }.
-// shareId is the short 8-char ID used in /t/<shareId> URLs.
-export async function saveTape({ tapeName, skin, note, sideA, sideB, creatorId }) {
-  if (!supabase) return { shareId: null, error: 'Supabase not configured' };
+// ── Upsert tape ───────────────────────────────────────────────────────────────
+// Creates a new tape (if no id) or updates an existing one (if id provided).
+// status: 'draft' | 'published'
+// Returns { id, shareId, error }
+export async function upsertTape({ id, tapeName, skin, note, sideA, sideB, creatorId, status = 'draft' }) {
+  if (!supabase) return { id: null, shareId: null, error: 'Supabase not configured' };
 
-  const { data, error } = await supabase
-    .from('tapes')
-    .insert({
-      tape_name:  tapeName || '',
-      skin:       skin     || 'rainbow',
-      note:       note     || '',
-      tracks_a:   sideA.map(trackToRow),
-      tracks_b:   sideB.map(trackToRow),
-      creator_id: creatorId || null,
-      status:     'published',
-    })
-    .select('share_id')
-    .single();
+  const payload = {
+    tape_name: tapeName || '',
+    skin:      skin     || 'rainbow',
+    note:      note     || '',
+    tracks_a:  sideA.map(trackToRow),
+    tracks_b:  sideB.map(trackToRow),
+    status,
+  };
 
-  if (error) return { shareId: null, error: error.message };
-  return { shareId: data.share_id, error: null };
+  if (id) {
+    // Update existing tape
+    const { data, error } = await supabase
+      .from('tapes')
+      .update(payload)
+      .eq('id', id)
+      .select('id, share_id')
+      .single();
+    if (error) return { id: null, shareId: null, error: error.message };
+    return { id: data.id, shareId: data.share_id, error: null };
+  } else {
+    // Insert new tape
+    const { data, error } = await supabase
+      .from('tapes')
+      .insert({ ...payload, creator_id: creatorId })
+      .select('id, share_id')
+      .single();
+    if (error) return { id: null, shareId: null, error: error.message };
+    return { id: data.id, shareId: data.share_id, error: null };
+  }
 }
 
 
-// ── Load tape by share ID ─────────────────────────────────────────────────────
-// Returns { tape, error } where tape is in the standard app format.
+// ── Legacy saveTape (kept for backwards compat) ───────────────────────────────
+export async function saveTape({ tapeName, skin, note, sideA, sideB, creatorId }) {
+  return upsertTape({ tapeName, skin, note, sideA, sideB, creatorId, status: 'published' });
+}
+
+
+// ── Delete tape ───────────────────────────────────────────────────────────────
+export async function deleteTape(tapeId) {
+  if (!supabase) return { error: 'Supabase not configured' };
+  const { error } = await supabase.from('tapes').delete().eq('id', tapeId);
+  return { error: error?.message || null };
+}
+
+
+// ── Load tape by share ID (for recipient links) ───────────────────────────────
 export async function loadTapeByShareId(shareId) {
   if (!supabase) return { tape: null, error: 'Supabase not configured' };
 
@@ -78,43 +101,84 @@ export async function loadTapeByShareId(shareId) {
     .single();
 
   if (error) return { tape: null, error: error.message };
-
-  return {
-    tape: {
-      tapeName: data.tape_name,
-      theme:    data.skin,
-      note:     data.note,
-      sideA:    (data.tracks_a || []).map(rowToTrack),
-      sideB:    (data.tracks_b || []).map(rowToTrack),
-      shareId:  data.share_id,
-    },
-    error: null,
-  };
+  return { tape: _rowToTape(data), error: null };
 }
 
 
-// ── Load tapes by creator ─────────────────────────────────────────────────────
-// Returns { tapes, error } — the creator's saved tape library.
+// ── Load tape by DB id (for editing drafts / published tapes) ────────────────
+export async function loadTapeById(id) {
+  if (!supabase) return { tape: null, error: 'Supabase not configured' };
+
+  const { data, error } = await supabase
+    .from('tapes')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) return { tape: null, error: error.message };
+  return { tape: _rowToTape(data), error: null };
+}
+
+
+// ── Load tapes by creator (My Tapes library) ─────────────────────────────────
 export async function loadMyTapes(creatorId) {
   if (!supabase) return { tapes: [], error: 'Supabase not configured' };
 
   const { data, error } = await supabase
     .from('tapes')
-    .select('id, share_id, tape_name, skin, created_at, status')
+    .select('id, share_id, tape_name, skin, status, created_at, updated_at, tracks_a, tracks_b, note')
     .eq('creator_id', creatorId)
-    .order('created_at', { ascending: false });
+    .order('updated_at', { ascending: false });
 
   if (error) return { tapes: [], error: error.message };
   return { tapes: data || [], error: null };
 }
 
 
-// ── Log event ─────────────────────────────────────────────────────────────────
-// Fires-and-forgets an analytics event row.
-// eventType: 'tape_opened' | 'tape_played' | 'tape_completed'
+// ── Load received tapes (tapes this user opened that someone else made) ───────
+// Uses the events table — no schema change needed.
+export async function getReceivedTapes(userId) {
+  if (!supabase) return { tapes: [], error: 'Supabase not configured' };
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('created_at, tape:tapes(id, share_id, tape_name, skin, creator_id, status, created_at)')
+    .eq('event_type', 'tape_opened')
+    .eq('viewer_id', userId)
+    .eq('tapes.status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (error) return { tapes: [], error: error.message };
+
+  // Deduplicate by tape id (user may have opened same tape multiple times)
+  const seen = new Set();
+  const tapes = (data || [])
+    .map(row => row.tape)
+    .filter(t => t && t.creator_id !== userId && !seen.has(t.id) && seen.add(t.id));
+
+  return { tapes, error: null };
+}
+
+
+// ── Internal: convert a DB tape row to the standard app tape format ───────────
+function _rowToTape(data) {
+  return {
+    dbId:     data.id,
+    shareId:  data.share_id,
+    tapeName: data.tape_name,
+    theme:    data.skin,
+    skin:     data.skin,
+    note:     data.note,
+    status:   data.status,
+    sideA:    (data.tracks_a || []).map(rowToTrack),
+    sideB:    (data.tracks_b || []).map(rowToTrack),
+  };
+}
+
+
+// ── Log analytics event ───────────────────────────────────────────────────────
 export async function logEvent({ tapeId, eventType, sessionId, viewerId = null, metadata = {} }) {
   if (!supabase || !tapeId) return;
-
   await supabase.from('events').insert({
     tape_id:    tapeId,
     event_type: eventType,
@@ -122,11 +186,10 @@ export async function logEvent({ tapeId, eventType, sessionId, viewerId = null, 
     viewer_id:  viewerId  || null,
     metadata,
   });
-  // We swallow errors — analytics should never break the UX.
 }
 
 
-// ── Get tape DB id by share_id (needed for logEvent) ─────────────────────────
+// ── Get tape DB id by share_id ────────────────────────────────────────────────
 export async function getTapeId(shareId) {
   if (!supabase) return null;
   const { data } = await supabase

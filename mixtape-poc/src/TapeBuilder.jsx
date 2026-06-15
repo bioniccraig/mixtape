@@ -7,7 +7,7 @@ import JCard from './JCard';
 import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
 import { buildShareUrl } from './share';
-import { saveTape } from './db';
+import { upsertTape } from './db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function msToMinutes(ms) {
@@ -93,13 +93,14 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck }
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function TapeBuilder({ onBack, user, onSignInRequest }) {
-  const [skin,         setSkin]         = useState(DEFAULT_SKIN);
-  const [tapeName,     setTapeName]     = useState('');
-  const [note,         setNote]         = useState('');
+// initialTape: optional tape object loaded from library (for editing drafts/published)
+export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibrary, initialTape }) {
+  const [skin,         setSkin]         = useState(initialTape?.skin || initialTape?.theme || DEFAULT_SKIN);
+  const [tapeName,     setTapeName]     = useState(initialTape?.tapeName || '');
+  const [note,         setNote]         = useState(initialTape?.note || '');
   const [activeSide,   setActiveSide]   = useState('A');
-  const [sideA,        setSideA]        = useState([]);
-  const [sideB,        setSideB]        = useState([]);
+  const [sideA,        setSideA]        = useState(initialTape?.sideA || []);
+  const [sideB,        setSideB]        = useState(initialTape?.sideB || []);
   const [search,       setSearch]       = useState('');
   const [results,      setResults]      = useState([]);
   const [searching,    setSearching]    = useState(false);
@@ -110,6 +111,13 @@ export default function TapeBuilder({ onBack, user, onSignInRequest }) {
   const [showJCard,    setShowJCard]    = useState(false);
   const [toast,        setToast]        = useState(null);
   const [reviewing,    setReviewing]    = useState(null); // { side, id }
+
+  // DB state — populated when tape has been saved
+  const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
+  const [shareId,   setShareId]   = useState(initialTape?.shareId || null);
+  const [saveLabel, setSaveLabel] = useState('Save');      // 'Save' | 'Saving…' | 'Saved ✓' | 'Error'
+  const [shareLabel, setShareLabel] = useState('Share 🔗'); // 'Share 🔗' | 'Saving…' | 'Copied! 🔗'
+
   const searchTimer = useRef(null);
 
   const sideAMs = sideA.reduce((t, x) => t + x.durationMs, 0);
@@ -282,8 +290,27 @@ export default function TapeBuilder({ onBack, user, onSignInRequest }) {
     else              setSideB(arr);
   }
 
-  const [sharing, setSharing] = useState(false);
+  // ── Save (draft) ────────────────────────────────────────────────────────────
+  async function handleSave() {
+    if (!user) { onSignInRequest(); return; }
+    setSaveLabel('Saving…');
+    const { id, shareId: sid, error } = await upsertTape({
+      id: dbTapeId, tapeName, skin, note, sideA, sideB,
+      creatorId: user.id, status: 'draft',
+    });
+    if (error) {
+      setSaveLabel('Error');
+      showToast(`Couldn't save: ${error}`);
+      setTimeout(() => setSaveLabel('Save'), 2000);
+      return;
+    }
+    setDbTapeId(id);
+    setShareId(sid);
+    setSaveLabel('Saved ✓');
+    setTimeout(() => setSaveLabel('Save'), 2000);
+  }
 
+  // ── Share (publish + copy link) ──────────────────────────────────────────────
   async function handleShare() {
     if (needsAttention > 0) {
       const ok = window.confirm(
@@ -292,41 +319,39 @@ export default function TapeBuilder({ onBack, user, onSignInRequest }) {
       if (!ok) return;
     }
 
-    setSharing(true);
-
-    // ── If signed in: save to DB and generate a short /t/SHAREID link ──────
-    if (user) {
-      const { shareId, error } = await saveTape({
-        tapeName, skin, note, sideA, sideB,
-        creatorId: user.id,
-      });
-
-      setSharing(false);
-
-      if (error) {
-        showToast(`Couldn't save tape: ${error}`);
-        return;
-      }
-
-      const url = `${window.location.origin}/t/${shareId}`;
+    // Not signed in — fall back to hash URL
+    if (!user) {
+      const url = buildShareUrl({ tapeName, theme: skin, sideA, sideB, note });
       try {
         await navigator.clipboard.writeText(url);
-        showToast('🔗 Short link copied! Tape saved to your library.');
+        showToast('Link copied! Sign in to save tapes and get short links.');
       } catch {
         window.prompt('Copy this link:', url);
       }
       return;
     }
 
-    // ── Not signed in: fall back to hash-encoded URL ──────────────────────
-    setSharing(false);
-    const url = buildShareUrl({ tapeName, theme: skin, sideA, sideB, note });
+    // Signed in — upsert as published and copy short link
+    setShareLabel('Saving…');
+    const { id, shareId: sid, error } = await upsertTape({
+      id: dbTapeId, tapeName, skin, note, sideA, sideB,
+      creatorId: user.id, status: 'published',
+    });
+    if (error) {
+      setShareLabel('Share 🔗');
+      showToast(`Couldn't save tape: ${error}`);
+      return;
+    }
+    setDbTapeId(id);
+    setShareId(sid);
+    const url = `${window.location.origin}/t/${sid}`;
     try {
       await navigator.clipboard.writeText(url);
-      showToast('🔗 Link copied! Sign in to save tapes and get short links.');
     } catch {
       window.prompt('Copy this link:', url);
     }
+    setShareLabel('Copied! 🔗');
+    setTimeout(() => setShareLabel('Share 🔗'), 2500);
   }
 
   const [mobilePanel, setMobilePanel] = useState('search');
@@ -347,15 +372,25 @@ export default function TapeBuilder({ onBack, user, onSignInRequest }) {
         </div>
         <div className="header-actions">
           {user ? (
-            <span className="auth-status-small">{user.email}</span>
+            <>
+              <button className="btn-library" onClick={onOpenLibrary} title="My Library">
+                📼 Library
+              </button>
+              <span className="auth-status-small">{user.email}</span>
+            </>
           ) : (
             <button className="btn-auth-link" onClick={onSignInRequest} title="Sign in to save tapes">
               Sign in
             </button>
           )}
+          {hasTracks && user && (
+            <button className="save-btn" onClick={handleSave} title="Save as draft">
+              {saveLabel}
+            </button>
+          )}
           {hasTracks && (
-            <button className="share-btn" onClick={handleShare} disabled={sharing} title="Share this tape">
-              {sharing ? 'Saving…' : (user ? 'Save & Share 🔗' : 'Share Tape 🔗')}
+            <button className="share-btn" onClick={handleShare} title="Copy share link">
+              {shareLabel}
             </button>
           )}
           <button className="logout-btn" onClick={onBack}>← Back</button>
