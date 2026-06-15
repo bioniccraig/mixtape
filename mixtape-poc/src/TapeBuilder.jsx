@@ -6,6 +6,8 @@ import CassetteSVG from './Cassette';
 import JCard from './JCard';
 import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
+import { useAppleMusic } from './useAppleMusic';
+import EngineToggle from './EngineToggle';
 import { upsertTape } from './db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -110,6 +112,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [showJCard,    setShowJCard]    = useState(false);
   const [toast,        setToast]        = useState(null);
   const [reviewing,    setReviewing]    = useState(null); // { side, id }
+  const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
 
   // DB state — populated when tape has been saved
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
@@ -143,23 +146,52 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     onError: () => { showToast("Skipping — this track can't play here"); advanceRef.current(); },
   });
 
+  const am = useAppleMusic({
+    onEnded: () => advanceRef.current(),
+    onError: () => { showToast("Skipping — Apple Music can't play this track"); advanceRef.current(); },
+  });
+
   // Only (re)load on an actual track change — not on pause/resume or match updates.
   const loadedIdRef = useRef(null);
 
-  // ── YouTube playback ────────────────────────────────────────────────────────
+  // ── Reset loaded track when engine switches ───────────────────────────────
   useEffect(() => {
-    if (!playing) { yt.stop(); loadedIdRef.current = null; return; }
-    const track = (playingSide === 'A' ? sideA : sideB)[playingIndex];
-    if (!track) { setPlaying(false); return; }
-    if (!track.ytId) {
-      showToast(`Skipping "${track.title}" — no match yet`);
-      advanceRef.current();
+    loadedIdRef.current = null;
+    yt.stop();
+    am.stop();
+  }, [engine]); // eslint-disable-line
+
+  // ── Drive the active engine off playback state ────────────────────────────
+  useEffect(() => {
+    if (!playing) {
+      yt.stop();
+      am.stop();
+      loadedIdRef.current = null;
       return;
     }
-    if (loadedIdRef.current === track.ytId) return; // already loaded — don't restart
-    loadedIdRef.current = track.ytId;
-    yt.play(track.ytId);
-  }, [playing, playingSide, playingIndex, sideA, sideB]); // eslint-disable-line
+    const track = (playingSide === 'A' ? sideA : sideB)[playingIndex];
+    if (!track) { setPlaying(false); return; }
+
+    if (engine === 'apple') {
+      if (!track.id) {
+        showToast(`Skipping "${track.title}" — no Apple Music ID`);
+        advanceRef.current();
+        return;
+      }
+      if (loadedIdRef.current === `am:${track.id}`) return;
+      loadedIdRef.current = `am:${track.id}`;
+      am.play(track.id);
+    } else {
+      if (!track.ytId) {
+        showToast(`Skipping "${track.title}" — no match yet`);
+        advanceRef.current();
+        return;
+      }
+      if (loadedIdRef.current === `yt:${track.ytId}`) return;
+      loadedIdRef.current = `yt:${track.ytId}`;
+      yt.play(track.ytId);
+    }
+  }, [playing, playingSide, playingIndex, sideA, sideB, engine]); // eslint-disable-line
 
   function togglePlayPause() {
     if (!playing) {
@@ -170,10 +202,10 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       setPaused(false);
       setPlaying(true);
     } else if (paused) {
-      yt.resume();
+      engine === 'apple' ? am.resume() : yt.resume();
       setPaused(false);
     } else {
-      yt.pause();
+      engine === 'apple' ? am.pause() : yt.pause();
       setPaused(true);
     }
   }
@@ -193,8 +225,12 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   function prev() {
     if (!playing) return;
     setPaused(false);
-    if (playingIndex > 0) setPlayingIndex(playingIndex - 1);
-    else yt.play((playingSide === 'A' ? sideA : sideB)[0]?.ytId);
+    if (playingIndex > 0) {
+      setPlayingIndex(playingIndex - 1);
+    } else {
+      // Restart first track — clear loadedIdRef so the effect reloads it
+      loadedIdRef.current = null;
+    }
   }
 
   // ── Search ────────────────────────────────────────────────────────────────
@@ -443,8 +479,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                 />
               </div>
 
-              {/* YouTube screen — visible while playing (kept in DOM so the player can attach) */}
-              <div className={`yt-frame ${playing ? 'show' : ''}`}>
+              {/* YouTube screen — only shown when using YouTube engine */}
+              <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
                 <div id="yt-player-builder" />
               </div>
 
@@ -464,14 +500,16 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                 <button
                   className="tp-btn tp-main"
                   onClick={togglePlayPause}
-                  disabled={!yt.ready && !playing}
+                  disabled={engine === 'apple' ? (!am.ready && !playing) : (!yt.ready && !playing)}
                   title={!playing ? `Play Side ${activeSide}` : paused ? 'Resume' : 'Pause'}
                 >
-                  {!yt.ready && !playing ? '⟳' : !playing ? '▶' : paused ? '▶' : '⏸'}
+                  {(!yt.ready && engine === 'youtube' && !playing) || (!am.ready && engine === 'apple' && !playing) ? '⟳' : !playing ? '▶' : paused ? '▶' : '⏸'}
                 </button>
                 <button className="tp-btn" onClick={next} disabled={!playing} title="Next track">⏭</button>
                 <button className="tp-btn" onClick={stopPlay} disabled={!playing} title="Stop">⏹</button>
               </div>
+
+              <EngineToggle engine={engine} onEngineChange={setEngine} am={am} />
 
               <div className="skin-picker">
                 {TAPE_SKINS.map(sk => (
