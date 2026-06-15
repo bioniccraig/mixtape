@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts } from './db';
+import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts, duplicateTape } from './db';
 import { TAPE_SKINS, DEFAULT_SKIN } from './constants';
 
 function skinThumb(skinId) {
@@ -24,9 +24,10 @@ function shareUrl(shareId) {
 }
 
 // ── Sent tape card (published, locked) ────────────────────────────────────────
-function SentCard({ tape, onPreview, onDelete, likeCount }) {
-  const [confirming, setConfirming] = useState(false);
-  const [copied,     setCopied]     = useState(false);
+function SentCard({ tape, onPreview, onDelete, onDuplicate, likeCount }) {
+  const [confirming,   setConfirming]   = useState(false);
+  const [copied,       setCopied]       = useState(false);
+  const [duplicating,  setDuplicating]  = useState(false);
   const thumb = skinThumb(tape.skin);
   const name  = tape.tape_name || tape.tapeName || 'Untitled tape';
   const count = trackCount(tape);
@@ -35,6 +36,12 @@ function SentCard({ tape, onPreview, onDelete, likeCount }) {
     navigator.clipboard.writeText(shareUrl(tape.share_id));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleDuplicate() {
+    setDuplicating(true);
+    await onDuplicate(tape);
+    setDuplicating(false);
   }
 
   return (
@@ -56,6 +63,14 @@ function SentCard({ tape, onPreview, onDelete, likeCount }) {
         <button className="lib-btn lib-btn-play" onClick={() => onPreview(tape)} title="Preview as recipient">▶</button>
         <button className="lib-btn lib-btn-copy" onClick={copyLink} title="Copy share link">
           {copied ? '✓' : '🔗'}
+        </button>
+        <button
+          className="lib-btn lib-btn-dupe"
+          onClick={handleDuplicate}
+          disabled={duplicating}
+          title="Duplicate as new draft"
+        >
+          {duplicating ? '…' : '⎘'}
         </button>
         {confirming ? (
           <>
@@ -171,6 +186,14 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
     setMyTapes(prev => prev.filter(t => t.id !== tapeId));
   }
 
+  async function handleDuplicate(tape) {
+    const { id, error: err } = await duplicateTape(tape, user.id);
+    if (err) { alert(`Couldn't duplicate: ${err}`); return; }
+    // Open the new draft in the builder
+    onEdit({ id });
+    onClose();
+  }
+
   const sent   = myTapes.filter(t => t.status === 'published');
   const drafts = myTapes.filter(t => t.status === 'draft');
 
@@ -216,6 +239,7 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
                       tape={tape}
                       onPreview={t => { onPlay(t); onClose(); }}
                       onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
                       likeCount={likeCounts[tape.id] || 0}
                     />
                   ))}

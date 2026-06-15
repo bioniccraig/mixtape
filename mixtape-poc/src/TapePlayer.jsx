@@ -3,6 +3,7 @@ import JCard from './JCard';
 import FrontCover from './FrontCover';
 import CassetteSVG from './Cassette';
 import ReactionButton from './ReactionButton';
+import { getReactionState } from './db';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
@@ -59,11 +60,19 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [paused,    setPaused]    = useState(false);
   const [playingSide,  setPlayingSide]  = useState('A');
   const [playingIndex, setPlayingIndex] = useState(0);
-  const [showJCard, setShowJCard] = useState(false);
-  const [toast,     setToast]     = useState(null);
-  const [engine,    setEngine]    = useState('youtube'); // 'youtube' | 'apple'
+  const [showJCard,    setShowJCard]    = useState(false);
+  const [toast,        setToast]        = useState(null);
+  const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
+  const [creatorLikes, setCreatorLikes] = useState(0); // like count shown to creator (read-only)
   const [reviewingYt,    setReviewingYt]    = useState(null); // { track, side }
   const [reviewingApple, setReviewingApple] = useState(null); // { track, side }
+
+  // ── Load like count for creator's own tape view (read-only) ──────────────────
+  const isCreator = !!(user && tape.creatorId && tape.creatorId === user.id);
+  useEffect(() => {
+    if (!isCreator || !tape.dbId) return;
+    getReactionState(tape.dbId, null).then(({ count }) => setCreatorLikes(count));
+  }, [isCreator, tape.dbId]); // eslint-disable-line
 
   // ── Show "saved" toast when user signs in while viewing a received tape ─────
   // prevUserRef is initialised with the current user so first-render is skipped.
@@ -296,7 +305,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             </div>
           )}
 
-          <p className="player-intro">Someone sent you a tape</p>
+          <p className="player-intro">
+            {isCreator
+              ? `You shared this${tape.createdAt ? ` on ${new Date(tape.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
+              : 'Someone sent you a tape'}
+          </p>
 
           {/* Front cover — always visible */}
           <FrontCover
@@ -316,8 +329,15 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             />
           </div>
 
-          {/* Reaction — hidden from the tape's own creator */}
-          {tape.creatorId !== user?.id && (
+          {/* Reaction — toggle for recipients, read-only count for creator */}
+          {isCreator ? (
+            creatorLikes > 0 && (
+              <div className="creator-likes">
+                <span>❤️</span>
+                <span className="creator-likes-count">{creatorLikes} {creatorLikes === 1 ? 'person loved' : 'people loved'} this tape</span>
+              </div>
+            )
+          ) : (
             <ReactionButton
               tapeId={tape.dbId}
               user={user}

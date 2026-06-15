@@ -222,11 +222,36 @@ function _rowToTape(data) {
     skin:          data.skin,
     note:          data.note,
     status:        data.status,
+    createdAt:     data.created_at || null,
     coverImageUrl: data.cover_image_url || null,
     coverColor:    data.cover_color     || null,
     sideA:         (data.tracks_a || []).map(rowToTrack),
     sideB:         (data.tracks_b || []).map(rowToTrack),
   };
+}
+
+
+// ── Duplicate tape (creates a new draft copy) ─────────────────────────────────
+export async function duplicateTape(tape, creatorId) {
+  // tape is a raw DB row (from loadMyTapes) or a mapped tape object
+  const sideA = (tape.tracks_a || tape.sideA || []).map(t =>
+    // support both raw DB rows and already-mapped track objects
+    t.platform_ids ? rowToTrack(t) : t
+  );
+  const sideB = (tape.tracks_b || tape.sideB || []).map(t =>
+    t.platform_ids ? rowToTrack(t) : t
+  );
+  return upsertTape({
+    tapeName:      (tape.tape_name || tape.tapeName || 'Untitled') + ' (copy)',
+    skin:          tape.skin,
+    note:          tape.note || '',
+    sideA,
+    sideB,
+    creatorId,
+    status:        'draft',
+    coverImageUrl: tape.cover_image_url || tape.coverImageUrl || null,
+    coverColor:    tape.cover_color     || tape.coverColor     || null,
+  });
 }
 
 
