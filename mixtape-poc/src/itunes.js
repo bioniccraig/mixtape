@@ -1,8 +1,8 @@
 // iTunes Store Search API — free, no auth required
 // Proxied through Vercel to avoid iOS Safari cross-origin restrictions
 
-const ITUNES_SEARCH  = '/api/itunes-search';
-const ITUNES_LOOKUP  = '/api/itunes-lookup';
+const ITUNES_SEARCH = '/api/itunes-search';
+const ITUNES_LOOKUP = '/api/itunes-lookup';
 
 const lc = s => (s || '').toLowerCase();
 
@@ -29,9 +29,7 @@ function xhr(url) {
 
 // ── Album-only two-step search ────────────────────────────────────────────────
 // Why two steps? iTunes albumTerm is only valid for entity=album, not entity=song.
-// Passing albumTerm with entity=song makes iTunes ignore the attribute and search
-// by song title instead — so "harvest" returns songs called "Harvest", not songs
-// from the Harvest album. The fix: find the album first, then look up its tracks.
+// Passing it with entity=song makes iTunes ignore it and search by song title instead.
 async function searchByAlbum(albumName) {
   // Step 1: find albums whose name matches
   const albumParams = new URLSearchParams({
@@ -39,15 +37,14 @@ async function searchByAlbum(albumName) {
     media: 'music',
     entity: 'album',
     attribute: 'albumTerm',
-    limit: 10,  // cast wide so we can find exact matches
+    limit: 10,
   });
   const albumData = await xhr(`${ITUNES_SEARCH}?${albumParams}`);
-
   const albums = (albumData.results || []).filter(r => r.collectionType === 'Album');
   if (!albums.length) return [];
 
-  // Prefer exact album name matches — critical for self-titled albums like "Blur" by Blur,
-  // where many albums may contain the word "blur" but only one IS called "Blur".
+  // Prefer exact album name match — critical for self-titled albums like "Blur" by Blur.
+  // Fall back to all candidates if no exact match (e.g. "Harvest Moon" → "Harvest Moon EP").
   const exactMatches = albums.filter(a => lc(a.collectionName) === lc(albumName));
   const candidates = exactMatches.length > 0 ? exactMatches : albums;
 
@@ -57,8 +54,38 @@ async function searchByAlbum(albumName) {
 
   return (trackData.results || [])
     .filter(r => r.wrapperType === 'track' && r.trackName && r.trackTimeMillis)
-    // Exact match on collection name to prevent mixing in tracks from similarly-named albums
-    .filter(r => lc(r.collectionName) === lc(albumName))
+    // Use includes (not ===) — iTunes may append "(Deluxe Edition)" etc. to collectionName
+    .filter(r => lc(r.collectionName).includes(lc(albumName)))
+    .map(formatTrack);
+}
+
+// ── Artist-only two-step search ───────────────────────────────────────────────
+// artistTerm on entity=song is unreliable for short/common words (e.g. "blur").
+// Find the artist entity first, then look up their songs by artistId.
+async function searchByArtist(artistName) {
+  // Step 1: find the artist
+  const artistParams = new URLSearchParams({
+    term: artistName,
+    media: 'music',
+    entity: 'musicArtist',
+    attribute: 'artistTerm',
+    limit: 5,
+  });
+  const artistData = await xhr(`${ITUNES_SEARCH}?${artistParams}`);
+  const artists = (artistData.results || []).filter(r => r.wrapperType === 'artist');
+  if (!artists.length) return [];
+
+  // Prefer exact artist name match
+  const exactMatches = artists.filter(a => lc(a.artistName) === lc(artistName));
+  const candidates = exactMatches.length > 0 ? exactMatches : artists;
+
+  // Step 2: look up songs by artistId
+  const ids = candidates.slice(0, 2).map(a => a.artistId).join(',');
+  const trackData = await xhr(`${ITUNES_LOOKUP}?id=${ids}&entity=song`);
+
+  return (trackData.results || [])
+    .filter(r => r.wrapperType === 'track' && r.trackName && r.trackTimeMillis)
+    .filter(r => lc(r.artistName).includes(lc(artistName)))
     .map(formatTrack);
 }
 
@@ -67,17 +94,19 @@ export function searchTracks({ artist = '', track = '', album = '' } = {}) {
   const a = artist.trim(), t = track.trim(), al = album.trim();
   if (!a && !t && !al) return Promise.resolve([]);
 
-  // Album-only → two-step lookup for accurate results
+  // Single-field searches: use two-step lookups for reliable results
   if (al && !a && !t) return searchByAlbum(al);
+  if (a  && !t && !al) return searchByArtist(a);
 
-  // All other cases: single or combined term search with client-side filtering
+  // Track-only or multi-field: standard search with client-side filtering
   let term, attribute;
   const filled = [a, t, al].filter(Boolean);
   if (filled.length === 1) {
-    term = filled[0];
-    if (a) attribute = 'artistTerm';
-    if (t) attribute = 'songTerm';
+    // Track-only
+    term = t;
+    attribute = 'songTerm';
   } else {
+    // Multiple fields — combine into one query
     term = filled.join(' ');
   }
 
@@ -92,7 +121,7 @@ export function searchTracks({ artist = '', track = '', album = '' } = {}) {
   return xhr(`${ITUNES_SEARCH}?${params}`).then(data =>
     (data.results || [])
       .filter(r => r.trackName && r.trackTimeMillis)
-      // Client-side: enforce any album/artist constraints not handled by iTunes attribute
+      // Client-side: enforce any album/artist constraints not handled by iTunes
       .filter(r => {
         if (al && !lc(r.collectionName).includes(lc(al))) return false;
         if (a  && !lc(r.artistName).includes(lc(a)))      return false;
@@ -102,7 +131,7 @@ export function searchTracks({ artist = '', track = '', album = '' } = {}) {
   );
 }
 
-// ── Format raw iTunes result into our track shape ────────────────────────────
+// ── Format raw iTunes result into our track shape ─────────────────────────────
 function formatTrack(track) {
   const ms = track.trackTimeMillis || 0;
   const total = Math.floor(ms / 1000);
