@@ -5,7 +5,7 @@ import CassetteSVG  from './Cassette';
 import AuthModal    from './AuthModal';
 import MyLibrary    from './MyLibrary';
 import { getSharedTape } from './share';
-import { loadTapeByShareId, loadTapeById } from './db';
+import { loadTapeByShareId, loadTapeById, recordTapeView } from './db';
 import { useAuth } from './useAuth';
 import { supabase } from './supabase';
 import './App.css';
@@ -35,11 +35,20 @@ export default function App() {
     if (!shareId) return;
     setTapeLoading(true);
     loadTapeByShareId(shareId).then(({ tape: t, error }) => {
-      if (t) { setTape(t); setView('player'); }
-      else   { console.error('Failed to load tape:', error); setView('splash'); }
+      if (t) {
+        setTape(t);
+        setView('player');
+        // Record view for received tapes — only if signed in and not your own tape
+        if (user && t.creatorId !== user.id) {
+          recordTapeView(t.dbId, user.id);
+        }
+      } else {
+        console.error('Failed to load tape:', error);
+        setView('splash');
+      }
       setTapeLoading(false);
     });
-  }, [shareId]); // eslint-disable-line
+  }, [shareId, user]); // eslint-disable-line
 
   // ── Sign out ──────────────────────────────────────────────────────────────
   async function signOut() {

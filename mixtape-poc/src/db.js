@@ -135,6 +135,16 @@ export async function loadMyTapes(creatorId) {
 }
 
 
+// ── Record that a signed-in user opened a shared tape ─────────────────────────
+export async function recordTapeView(tapeId, userId) {
+  if (!supabase || !tapeId || !userId) return;
+  await supabase.from('events').insert({
+    tape_id:    tapeId,
+    event_type: 'tape_opened',
+    viewer_id:  userId,
+  });
+}
+
 // ── Load received tapes (tapes this user opened that someone else made) ───────
 // Uses the events table — no schema change needed.
 export async function getReceivedTapes(userId) {
