@@ -882,7 +882,7 @@ body {
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
-    color: #666;
+    color: #aaa;
     padding: 13px 8px;
     font-size: 14px;
     font-weight: 700;
@@ -893,6 +893,13 @@ body {
   .mobile-tab.active {
     color: #e85d75;
     border-bottom-color: #e85d75;
+  }
+  /* My Tape tab: always bright when it has tracks */
+  .mobile-tab.has-tracks {
+    color: #fff;
+  }
+  .mobile-tab.has-tracks.active {
+    color: #e85d75;
   }
 
   /* Hide inactive panel */

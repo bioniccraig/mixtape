@@ -558,7 +558,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         {/* ── Mobile tab bar (hidden on desktop via CSS) ── */}
         <div className="mobile-tabs">
           <button
-            className={`mobile-tab ${mobilePanel === 'tape' ? 'active' : ''}`}
+            className={`mobile-tab ${mobilePanel === 'tape' ? 'active' : ''} ${hasTracks ? 'has-tracks' : ''}`}
             onClick={() => setMobilePanel('tape')}
           >
             ◼ My Tape{totalTracks > 0 ? ` (${totalTracks})` : ''}
