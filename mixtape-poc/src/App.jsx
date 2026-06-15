@@ -5,7 +5,7 @@ import CassetteSVG  from './Cassette';
 import AuthModal    from './AuthModal';
 import MyLibrary    from './MyLibrary';
 import { getSharedTape } from './share';
-import { loadTapeByShareId } from './db';
+import { loadTapeByShareId, loadTapeById } from './db';
 import { useAuth } from './useAuth';
 import { supabase } from './supabase';
 import './App.css';
@@ -63,18 +63,12 @@ export default function App() {
   }
 
   // ── Open a tape from the library in the builder for editing ──────────────
-  function openTapeInBuilder(libraryTape) {
-    const builderTape = {
-      dbId:     libraryTape.id       || libraryTape.dbId,
-      shareId:  libraryTape.share_id || libraryTape.shareId,
-      tapeName: libraryTape.tape_name || libraryTape.tapeName || '',
-      skin:     libraryTape.skin     || 'rainbow',
-      note:     libraryTape.note     || '',
-      sideA:    libraryTape.sideA    || [],
-      sideB:    libraryTape.sideB    || [],
-      status:   libraryTape.status,
-    };
-    setEditTape(builderTape);
+  // Always fetches the full tape from DB to ensure tracks are properly converted.
+  async function openTapeInBuilder(libraryTape) {
+    const id = libraryTape.id || libraryTape.dbId;
+    const { tape, error } = await loadTapeById(id);
+    if (error || !tape) { alert("Couldn't load tape for editing"); return; }
+    setEditTape(tape);
     setView('builder');
   }
 
