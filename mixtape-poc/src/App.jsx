@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import TapeBuilder  from './TapeBuilder';
 import TapePlayer   from './TapePlayer';
 import CassetteSVG  from './Cassette';
@@ -20,7 +21,12 @@ function getShareIdFromPath() {
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   // Render legal page immediately — no auth or state needed
-  if (window.location.pathname === '/legal') return <Legal />;
+  if (window.location.pathname === '/legal') return (
+    <>
+      <Legal />
+      <Analytics />
+    </>
+  );
   const { user, loading: authLoading } = useAuth();
 
   const shareId  = getShareIdFromPath();
@@ -83,13 +89,16 @@ export default function App() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (authLoading || tapeLoading) {
     return (
-      <div className="splash">
-        <div className="logo">
-          <span className="logo-icon">◼</span>
-          <span className="logo-text">MixTape</span>
+      <>
+        <div className="splash">
+          <div className="logo">
+            <span className="logo-icon">◼</span>
+            <span className="logo-text">MixTape</span>
+          </div>
+          <p className="tagline">Loading…</p>
         </div>
-        <p className="tagline">Loading…</p>
-      </div>
+        <Analytics />
+      </>
     );
   }
 
@@ -114,6 +123,7 @@ export default function App() {
         />
         {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
         {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
+        <Analytics />
       </>
     );
   }
@@ -131,6 +141,7 @@ export default function App() {
         />
         {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
         {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
+        <Analytics />
       </>
     );
   }
@@ -179,6 +190,7 @@ export default function App() {
 
       {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
       {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
+      <Analytics />
     </div>
   );
 }
