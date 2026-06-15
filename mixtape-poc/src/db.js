@@ -3,6 +3,37 @@
 
 import { supabase } from './supabase';
 
+
+// ── Cover photo upload ────────────────────────────────────────────────────────
+// Resizes to max 800px client-side (canvas) then uploads to Supabase Storage.
+// Bucket "tape-covers" must exist and be public in your Supabase project.
+async function _resizeImage(file, maxPx = 800) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(resolve, 'image/jpeg', 0.85);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+export async function uploadCoverPhoto(file, userId) {
+  if (!supabase) return { url: null, error: 'Supabase not configured' };
+  const blob = await _resizeImage(file);
+  const path = `covers/${userId}/${Date.now()}.jpg`;
+  const { error } = await supabase.storage
+    .from('tape-covers')
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+  if (error) return { url: null, error: error.message };
+  const { data } = supabase.storage.from('tape-covers').getPublicUrl(path);
+  return { url: data.publicUrl, error: null };
+}
+
 // ── Track serialisation ───────────────────────────────────────────────────────
 function trackToRow(t) {
   return {
@@ -47,16 +78,18 @@ function rowToTrack(r) {
 // Creates a new tape (if no id) or updates an existing one (if id provided).
 // status: 'draft' | 'published'
 // Returns { id, shareId, error }
-export async function upsertTape({ id, tapeName, skin, note, sideA, sideB, creatorId, status = 'draft' }) {
+export async function upsertTape({ id, tapeName, skin, note, sideA, sideB, creatorId, status = 'draft', coverImageUrl, coverColor }) {
   if (!supabase) return { id: null, shareId: null, error: 'Supabase not configured' };
 
   const payload = {
-    tape_name: tapeName || '',
-    skin:      skin     || 'rainbow',
-    note:      note     || '',
-    tracks_a:  sideA.map(trackToRow),
-    tracks_b:  sideB.map(trackToRow),
+    tape_name:       tapeName       || '',
+    skin:            skin           || 'rainbow',
+    note:            note           || '',
+    tracks_a:        sideA.map(trackToRow),
+    tracks_b:        sideB.map(trackToRow),
     status,
+    cover_image_url: coverImageUrl  || null,
+    cover_color:     coverColor     || null,
   };
 
   if (id) {
@@ -180,16 +213,18 @@ export async function getReceivedTapes(userId) {
 // ── Internal: convert a DB tape row to the standard app tape format ───────────
 function _rowToTape(data) {
   return {
-    dbId:      data.id,
-    shareId:   data.share_id,
-    creatorId: data.creator_id,
-    tapeName:  data.tape_name,
-    theme:     data.skin,
-    skin:      data.skin,
-    note:      data.note,
-    status:    data.status,
-    sideA:     (data.tracks_a || []).map(rowToTrack),
-    sideB:     (data.tracks_b || []).map(rowToTrack),
+    dbId:          data.id,
+    shareId:       data.share_id,
+    creatorId:     data.creator_id,
+    tapeName:      data.tape_name,
+    theme:         data.skin,
+    skin:          data.skin,
+    note:          data.note,
+    status:        data.status,
+    coverImageUrl: data.cover_image_url || null,
+    coverColor:    data.cover_color     || null,
+    sideA:         (data.tracks_a || []).map(rowToTrack),
+    sideB:         (data.tracks_b || []).map(rowToTrack),
   };
 }
 

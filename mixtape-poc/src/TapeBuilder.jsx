@@ -8,8 +8,9 @@ import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
-import { upsertTape } from './db';
+import { upsertTape, uploadCoverPhoto } from './db';
 import AppleMatchModal from './AppleMatchModal';
+import FrontCover from './FrontCover';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function msToMinutes(ms) {
@@ -135,6 +136,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [reviewingApple, setReviewingApple] = useState(null); // { side, id } — Apple Music review
   const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
   const [attentionPanel, setAttentionPanel] = useState(null); // null | { tracks, onProceed }
+
+  // Cover state
+  const [coverImageUrl, setCoverImageUrl] = useState(initialTape?.coverImageUrl || null);
+  const [coverColor,    setCoverColor]    = useState(initialTape?.coverColor    || null);
+  const [coverUploading, setCoverUploading] = useState(false);
 
   // DB state — populated when tape has been saved
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
@@ -277,6 +283,21 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setTimeout(() => setToast(null), 6000);
   }
 
+  // Auto-art: first track artwork from iTunes search results
+  const autoArtUrl = [...sideA, ...sideB].find(t => t.artwork)?.artwork || null;
+
+  // Cover photo upload handler
+  async function handleCoverPhoto(file) {
+    if (!file) { setCoverImageUrl(null); return; }
+    if (!user) { onSignInRequest(); return; }
+    setCoverUploading(true);
+    showToast('Uploading cover photo…');
+    const { url, error } = await uploadCoverPhoto(file, user.id);
+    setCoverUploading(false);
+    if (error) { showToast(`Upload failed: ${error}`); return; }
+    setCoverImageUrl(url);
+  }
+
   // Update the match fields of one track on a given side (by track id).
   function patchTrack(side, id, fields) {
     const setter = side === 'A' ? setSideA : setSideB;
@@ -407,7 +428,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setSaveLabel('Saving…');
     const { id, shareId: sid, error } = await upsertTape({
       id: dbTapeId, tapeName, skin, note, sideA, sideB,
-      creatorId: user.id, status: 'draft',
+      creatorId: user.id, status: 'draft', coverImageUrl, coverColor,
     });
     if (error) {
       setSaveLabel('Error');
@@ -448,7 +469,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     }
     const { id, shareId: sid, error } = await upsertTape({
       id: dbTapeId, tapeName, skin, note, sideA, sideB,
-      creatorId: user.id, status: 'published',
+      creatorId: user.id, status: 'published', coverImageUrl, coverColor,
     });
     if (error) { showToast(`Couldn't save tape: ${error}`); return null; }
     setDbTapeId(id);
@@ -582,6 +603,18 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             maxLength={40}
           />
 
+          {/* ── Front cover — always visible ── */}
+          <FrontCover
+            tapeName={tapeName}
+            skin={skin}
+            coverImageUrl={coverUploading ? null : coverImageUrl}
+            coverColor={coverColor}
+            autoArtUrl={autoArtUrl}
+            editable={true}
+            onPhotoChange={handleCoverPhoto}
+            onColorChange={setCoverColor}
+          />
+
           <div className="view-toggle">
             <button className={`view-btn ${!showJCard ? 'active' : ''}`} onClick={() => setShowJCard(false)}>◼ Tape</button>
             <button className={`view-btn ${showJCard  ? 'active' : ''}`} onClick={() => setShowJCard(true)}>📋 Sleeve</button>
@@ -598,14 +631,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             />
           ) : (
             <>
-              <div className="cassette-wrap">
-                <CassetteSVG
-                  skin={skin}
-                  title={tapeName.toUpperCase() || 'MY MIXTAPE'}
-                  spinning={playing}
-                />
-              </div>
-
               {/* YouTube screen — only shown when using YouTube engine */}
               <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
                 <div id="yt-player-builder" />

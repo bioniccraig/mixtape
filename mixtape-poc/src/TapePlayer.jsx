@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import CassetteSVG from './Cassette';
 import JCard from './JCard';
+import FrontCover from './FrontCover';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
@@ -251,6 +251,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     : null;
   const canPlay = enriched && (engine === 'apple' ? am.ready : yt.ready);
 
+  // Auto-art: first track with artwork after enrichment
+  const autoArtUrl = enriched
+    ? [...tracksA, ...tracksB].find(t => t.artwork)?.artwork || null
+    : null;
+
   // Count unmatched tracks for the active engine so we can show a banner
   const unmatchedCount = [...tracksA, ...tracksB].filter(t =>
     engine === 'apple'
@@ -291,14 +296,15 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
 
           <p className="player-intro">Someone sent you a tape</p>
 
-          {/* Cassette */}
-          <div className="cassette-wrap" style={{ maxWidth: 360, margin: '0 auto' }}>
-            <CassetteSVG
-              skin={tape.theme}
-              title={(tape.tapeName || 'MIXTAPE').toUpperCase()}
-              spinning={playing}
-            />
-          </div>
+          {/* Front cover — always visible */}
+          <FrontCover
+            tapeName={tape.tapeName}
+            skin={tape.skin || tape.theme}
+            coverImageUrl={tape.coverImageUrl}
+            coverColor={tape.coverColor}
+            autoArtUrl={autoArtUrl}
+            editable={false}
+          />
 
           {/* YouTube screen — only shown when using YouTube engine */}
           <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
