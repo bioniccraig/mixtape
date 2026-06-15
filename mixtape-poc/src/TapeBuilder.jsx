@@ -6,7 +6,6 @@ import CassetteSVG from './Cassette';
 import JCard from './JCard';
 import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
-import { buildShareUrl } from './share';
 import { upsertTape } from './db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -319,15 +318,10 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       if (!ok) return;
     }
 
-    // Not signed in — fall back to hash URL
+    // Not signed in — prompt sign in (no guest sharing)
     if (!user) {
-      const url = buildShareUrl({ tapeName, theme: skin, sideA, sideB, note });
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('Link copied! Sign in to save tapes and get short links.');
-      } catch {
-        window.prompt('Copy this link:', url);
-      }
+      onSignInRequest();
+      showToast('Sign in to share your tape and get a link.');
       return;
     }
 

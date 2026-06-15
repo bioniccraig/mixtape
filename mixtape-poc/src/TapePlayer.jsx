@@ -16,7 +16,7 @@ function getSessionId() {
   return id;
 }
 
-export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, user }) {
+export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, user, onSignInRequest }) {
   const [tracksA,   setTracksA]   = useState(tape.sideA);
   const [tracksB,   setTracksB]   = useState(tape.sideB);
   const [enriched,  setEnriched]  = useState(false);
