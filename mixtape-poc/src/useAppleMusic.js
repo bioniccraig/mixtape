@@ -140,10 +140,11 @@ export function useAppleMusic({ onEnded, onError } = {}) {
 
       if (!catalogId) {
         const params = new URLSearchParams({
-          term: `${title} ${artist}`,
+          term: title,
+          attribute: 'songTerm',   // search song titles only; artist filter done by scoring
           media: 'music',
           entity: 'song',
-          limit: 15,
+          limit: 20,
         });
         const res     = await fetch(`/api/itunes-search?${params}`);
         const data    = await res.json();

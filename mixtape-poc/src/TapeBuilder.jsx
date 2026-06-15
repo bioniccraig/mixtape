@@ -300,10 +300,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   async function resolveAppleMatch(track, side) {
     try {
       const params = new URLSearchParams({
-        term: `${track.title} ${track.artist}`,
+        term: track.title,
+        attribute: 'songTerm',   // search song titles only; artist filter done by scoring
         media: 'music',
         entity: 'song',
-        limit: 10,
+        limit: 20,
       });
       const res     = await fetch(`/api/itunes-search?${params}`);
       const data    = await res.json();

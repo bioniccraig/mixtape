@@ -10,12 +10,14 @@ export default function AppleMatchModal({ track, side, onConfirm, onClose }) {
   const [selected,   setSelected]   = useState(track.appleId   || null);
   const [selTitle,   setSelTitle]   = useState(track.appleTitle || '');
   const [selAlbum,   setSelAlbum]   = useState('');
-  const [query,      setQuery]      = useState(`${track.artist} ${track.title}`);
+  const [query,      setQuery]      = useState(track.title);
 
   async function runSearch(q) {
     setSearching(true);
     try {
-      const params = new URLSearchParams({ term: q, media: 'music', entity: 'song', limit: 8 });
+      // Search by song title only — keeps cover/tribute bands out of results.
+      // The user can type artist name manually if they need to narrow further.
+      const params = new URLSearchParams({ term: q, attribute: 'songTerm', media: 'music', entity: 'song', limit: 15 });
       const res  = await fetch(`/api/itunes-search?${params}`);
       const data = await res.json();
       setResults(data.results || []);
