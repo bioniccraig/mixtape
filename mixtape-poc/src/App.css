@@ -883,6 +883,61 @@ body {
 .match-badge.confirmed { background: #16a085; box-shadow: 0 0 0 2px rgba(26,188,156,0.3); }
 .match-badge.none      { background: #e74c3c; }
 
+/* Apple Music badge — shares .match-badge base, tinted differently */
+.apple-badge          { background: #fa2d55; }    /* Apple Music red */
+.apple-badge.pending  { background: #b0b0b0; }
+.apple-badge.ok       { background: #fa2d55; }
+.apple-badge.none     { background: #e74c3c; }
+
+/* Apple Music match modal results */
+.apple-match-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(250,45,85,0.08);
+  border: 1px solid rgba(250,45,85,0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.apple-match-current-label { color: #888; flex-shrink: 0; }
+.apple-match-current-title { font-weight: 600; color: var(--text-primary, #fff); }
+.apple-match-current-album { color: #888; }
+
+.apple-match-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 8px 0;
+}
+
+.apple-match-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.apple-match-result:hover   { background: rgba(250,45,85,0.12); border-color: rgba(250,45,85,0.3); }
+.apple-match-result.selected { background: rgba(250,45,85,0.2); border-color: #fa2d55; }
+
+.apple-match-tick {
+  margin-left: auto;
+  color: #fa2d55;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* ── Match review modal ─────────────────────────────────────────────────────── */
 .mm-overlay {
   position: fixed; inset: 0;

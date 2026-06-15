@@ -128,15 +128,15 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   }
 
   // ── Playback controls (same interface as useYouTube) ─────────────────────
-  // play(title, artist) — resolves the Apple Music catalog ID from iTunes
-  // at play time using title + artist, then caches it for the session.
-  const play = useCallback(async (title, artist) => {
+  // play(title, artist, knownCatalogId?) — uses a pre-resolved iTunes catalog ID
+  // if the builder already resolved one; otherwise looks it up and caches it.
+  const play = useCallback(async (title, artist, knownCatalogId = null) => {
     try {
       const music = MusicKit.getInstance();
 
-      // Check session cache first
+      // Use caller-supplied ID (from resolveAppleMatch at add time) or session cache
       const cacheKey = `${title}|${artist}`;
-      let catalogId = itunesIdCache.get(cacheKey);
+      let catalogId = knownCatalogId || itunesIdCache.get(cacheKey);
 
       if (!catalogId) {
         const params = new URLSearchParams({

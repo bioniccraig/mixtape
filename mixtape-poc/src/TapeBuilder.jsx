@@ -9,6 +9,7 @@ import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
 import { upsertTape } from './db';
+import AppleMatchModal from './AppleMatchModal';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function msToMinutes(ms) {
@@ -73,8 +74,23 @@ function MatchBadge({ track, onCheck }) {
   );
 }
 
+// ── Apple Music match badge ───────────────────────────────────────────────────
+function AppleMusicBadge({ track, onCheck }) {
+  const status = track.appleStatus || 'pending';
+  let cls = 'match-badge apple-badge', icon, title;
+  if (status === 'none')  { cls += ' none';    icon = '!'; title = 'No Apple Music match — tap to fix'; }
+  else if (status === 'error') { cls += ' none'; icon = '↻'; title = 'Apple Music lookup failed — tap to retry'; }
+  else if (status === 'ok')    { cls += ' ok';   icon = ''; title = `Apple Music: ${track.appleTitle || 'matched'} — tap to change`; }
+  else                         { cls += ' pending'; icon = '⟳'; title = 'Finding Apple Music version…'; }
+  return (
+    <button className={cls} title={title} onClick={onCheck} disabled={status === 'pending'}>
+      {icon || ''}
+    </button>
+  );
+}
+
 // ── Tape track (on the tape) ──────────────────────────────────────────────────
-function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck }) {
+function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck, onAppleCheck }) {
   return (
     <div className={`tape-track ${isPlaying ? 'tape-track-playing' : ''}`}>
       <span className="tape-track-num">{isPlaying ? '▶' : index + 1}</span>
@@ -83,6 +99,7 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck }
         <span className="tape-track-artist">{track.artist}</span>
       </div>
       <MatchBadge track={track} onCheck={onCheck} />
+      <AppleMusicBadge track={track} onCheck={onAppleCheck} />
       <span className="tape-track-dur">{track.durationLabel}</span>
       <div className="tape-track-controls">
         <button onClick={() => onMove(index, -1)} disabled={index === 0}           className="move-btn">↑</button>
@@ -113,7 +130,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard,    setShowJCard]    = useState(false);
   const [toast,        setToast]        = useState(null);
-  const [reviewing,    setReviewing]    = useState(null); // { side, id }
+  const [reviewing,      setReviewing]      = useState(null); // { side, id } — YouTube review
+  const [reviewingApple, setReviewingApple] = useState(null); // { side, id } — Apple Music review
   const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
 
   // DB state — populated when tape has been saved
@@ -178,7 +196,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       const amKey = `am:${track.title}|${track.artist}`;
       if (loadedIdRef.current === amKey) return;
       loadedIdRef.current = amKey;
-      am.play(track.title, track.artist);
+      am.play(track.title, track.artist, track.appleId || null);
     } else {
       if (!track.ytId) {
         showToast(`Skipping "${track.title}" — no match yet`);
@@ -277,6 +295,52 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     }
   }
 
+  // Resolve Apple Music catalog ID in the background — same scoring as useAppleMusic
+  // but stored on the track so the user can review/swap it before sharing.
+  async function resolveAppleMatch(track, side) {
+    try {
+      const params = new URLSearchParams({
+        term: `${track.title} ${track.artist}`,
+        media: 'music',
+        entity: 'song',
+        limit: 10,
+      });
+      const res     = await fetch(`/api/itunes-search?${params}`);
+      const data    = await res.json();
+      const results = data.results || [];
+      const lc      = s => (s || '').toLowerCase();
+
+      function score(r) {
+        const tn = lc(r.trackName), an = lc(r.artistName);
+        const t  = lc(track.title), a  = lc(track.artist);
+        let s = 0;
+        if (an === a)                        s += 10; else if (an.includes(a) || a.includes(an)) s += 5;
+        if (tn === t)                        s += 10; else if (tn.includes(t) || t.includes(tn)) s += 5;
+        if (/\(live[\s,)]|\blive\b at/i.test(r.trackName))              s -= 8;
+        if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.trackName)) s -= 4;
+        return s;
+      }
+
+      const match = results
+        .map(r => ({ r, s: score(r) }))
+        .filter(x => x.s > 0)
+        .sort((a, b) => b.s - a.s)[0]?.r || results[0];
+
+      if (match) {
+        patchTrack(side, track.id, {
+          appleId:     String(match.trackId),
+          appleTitle:  match.trackName,
+          appleAlbum:  match.collectionName || '',
+          appleStatus: 'ok',
+        });
+      } else {
+        patchTrack(side, track.id, { appleStatus: 'none' });
+      }
+    } catch {
+      patchTrack(side, track.id, { appleStatus: 'error' });
+    }
+  }
+
   function addTrack(track, side) {
     const current = side === 'A' ? sideA : sideB;
     const usedMs  = current.reduce((t, x) => t + x.durationMs, 0);
@@ -286,12 +350,13 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     if (usedMs + track.durationMs > MAX_SIDE_MS) {
       showToast(`Side ${side} is full — remove a track or try the other side`); return;
     }
-    const withMatch = { ...track, ytStatus: 'pending', ytConfirmed: false };
+    const withMatch = { ...track, ytStatus: 'pending', ytConfirmed: false, appleStatus: 'pending', appleId: null, appleTitle: '' };
     if (side === 'A') setSideA(p => [...p, withMatch]);
     else              setSideB(p => [...p, withMatch]);
     setActiveSide(side);
     showToast(`Added "${track.title}" to Side ${side}`);
     resolveMatch(track, side);
+    resolveAppleMatch(track, side);
   }
 
   // Retry matching for a track that errored, before opening the review modal.
@@ -300,8 +365,17 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setReviewing({ side, id: track.id });
   }
 
+  function openAppleReview(side, track) {
+    if (track.appleStatus === 'error') resolveAppleMatch(track, side);
+    setReviewingApple({ side, id: track.id });
+  }
+
   const reviewingTrack = reviewing
     ? (reviewing.side === 'A' ? sideA : sideB).find(t => t.id === reviewing.id)
+    : null;
+
+  const reviewingAppleTrack = reviewingApple
+    ? (reviewingApple.side === 'A' ? sideA : sideB).find(t => t.id === reviewingApple.id)
     : null;
 
   // Count tracks that still need attention before a clean send.
@@ -550,6 +624,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                   onRemove={idx => removeTrack(activeSide, idx)}
                   onMove={(idx, dir) => moveTrack(activeSide, idx, dir)}
                   onCheck={() => openReview(activeSide, t)}
+                  onAppleCheck={() => openAppleReview(activeSide, t)}
                 />
               ))
             }
@@ -613,6 +688,18 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
           onConfirm={fields => {
             patchTrack(reviewing.side, reviewing.id, fields);
             setReviewing(null);
+          }}
+        />
+      )}
+
+      {reviewingAppleTrack && (
+        <AppleMatchModal
+          track={reviewingAppleTrack}
+          side={reviewingApple.side}
+          onClose={() => setReviewingApple(null)}
+          onConfirm={fields => {
+            patchTrack(reviewingApple.side, reviewingApple.id, fields);
+            setReviewingApple(null);
           }}
         />
       )}
