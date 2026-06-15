@@ -6,6 +6,27 @@ import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
 import { logEvent, getTapeId } from './db';
 
+// ── Read-only match badge for received tapes ─────────────────────────────────
+function PlayerBadge({ track, engine }) {
+  const status = engine === 'apple' ? (track.appleStatus || 'pending') : (track.ytStatus || 'pending');
+  const service = engine === 'apple' ? 'Apple Music' : 'YouTube';
+
+  if (status === 'pending') return null; // still resolving — don't show anything
+
+  let cls = 'match-badge' + (engine === 'apple' ? ' apple-badge' : '');
+  let icon;
+  if (status === 'ok')                    { cls += ' ok';   icon = '✓'; }
+  else if (status === 'none' || status === 'error') { cls += ' none'; icon = '!'; }
+  else                                    { return null; }
+
+  return (
+    <span className={cls} title={status === 'ok' ? `${service} match found` : `No ${service} match`}>
+      <span className="badge-service">{service}</span>
+      <span className="badge-icon">{icon}</span>
+    </span>
+  );
+}
+
 // Generate (or reuse) a session UUID stored in sessionStorage.
 // Groups multiple events from the same browser session together in analytics.
 function getSessionId() {
@@ -207,6 +228,13 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     : null;
   const canPlay = enriched && (engine === 'apple' ? am.ready : yt.ready);
 
+  // Count unmatched tracks for the active engine so we can show a banner
+  const unmatchedCount = [...tracksA, ...tracksB].filter(t =>
+    engine === 'apple'
+      ? (t.appleStatus === 'none' || t.appleStatus === 'error')
+      : (t.ytStatus === 'none' || t.ytStatus === 'error')
+  ).length;
+
   return (
     <div className="player">
       {/* ── Header ── */}
@@ -262,6 +290,13 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
                 {nowPlaying.title} — {nowPlaying.artist}
               </span>
               <span className="now-playing-side">Side {playingSide}</span>
+            </div>
+          )}
+
+          {/* Unmatched tracks warning */}
+          {enriched && unmatchedCount > 0 && (
+            <div className="player-match-warning">
+              ⚠️ {unmatchedCount} track{unmatchedCount !== 1 ? 's' : ''} marked with ! won't play on {engine === 'apple' ? 'Apple Music' : 'YouTube'} — try switching engine below
             </div>
           )}
 
@@ -336,6 +371,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
                           <span className="jcard-track-title">{t.title}</span>
                           <span className="jcard-track-artist">{t.artist}</span>
                         </div>
+                        <PlayerBadge track={t} engine={engine} />
                         <span className="jcard-track-dur">{t.durationLabel}</span>
                       </div>
                     ))
