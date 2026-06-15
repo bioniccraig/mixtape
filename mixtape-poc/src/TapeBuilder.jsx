@@ -170,6 +170,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     onEnded: () => advanceRef.current(),
     onError: () => { showToast("Skipping — Apple Music can't play this track"); advanceRef.current(); },
   });
+  const { storefront } = am; // user's iTunes store country — used in Apple Music searches
 
   // Only (re)load on an actual track change — not on pause/resume or match updates.
   const loadedIdRef = useRef(null);
@@ -305,6 +306,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         media: 'music',
         entity: 'song',
         limit: 20,
+        country: storefront,     // user's actual iTunes store
       });
       const res     = await fetch(`/api/itunes-search?${params}`);
       const data    = await res.json();
@@ -699,6 +701,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         <AppleMatchModal
           track={reviewingAppleTrack}
           side={reviewingApple.side}
+          storefront={storefront}
           onClose={() => setReviewingApple(null)}
           onConfirm={fields => {
             patchTrack(reviewingApple.side, reviewingApple.id, fields);

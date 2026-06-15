@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 
-export default function AppleMatchModal({ track, side, onConfirm, onClose }) {
+export default function AppleMatchModal({ track, side, storefront = 'gb', onConfirm, onClose }) {
   const [results,    setResults]    = useState([]);
   const [searching,  setSearching]  = useState(false);
   const [selected,   setSelected]   = useState(track.appleId   || null);
@@ -17,7 +17,7 @@ export default function AppleMatchModal({ track, side, onConfirm, onClose }) {
     try {
       // Search by song title only — keeps cover/tribute bands out of results.
       // The user can type artist name manually if they need to narrow further.
-      const params = new URLSearchParams({ term: q, attribute: 'songTerm', media: 'music', entity: 'song', limit: 15 });
+      const params = new URLSearchParams({ term: q, attribute: 'songTerm', media: 'music', entity: 'song', limit: 15, country: storefront });
       const res  = await fetch(`/api/itunes-search?${params}`);
       const data = await res.json();
       setResults(data.results || []);

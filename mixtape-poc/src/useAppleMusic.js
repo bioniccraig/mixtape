@@ -55,6 +55,7 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [authorizing,  setAuthorizing]  = useState(false);
   const [authError,    setAuthError]    = useState(null);
+  const [storefront,   setStorefront]   = useState('gb'); // user's iTunes store country code
 
   // Keep callback refs fresh so the MusicKit listener always calls the latest version
   const onEndedRef = useRef(onEnded);
@@ -78,7 +79,12 @@ export function useAppleMusic({ onEnded, onError } = {}) {
         if (music.isAuthorized) {
           setAuthorized(true);
           music.api.music('/v1/me/storefront')
-            .then(() => setIsSubscriber(true))
+            .then(r => {
+              setIsSubscriber(true);
+              // Grab the storefront country code so searches hit the right iTunes store
+              const sf = r?.data?.data?.[0]?.id;
+              if (sf) setStorefront(sf);
+            })
             .catch(() => setIsSubscriber(false));
         }
 
@@ -106,8 +112,10 @@ export function useAppleMusic({ onEnded, onError } = {}) {
 
       if (music.isAuthorized) {
         try {
-          await music.api.music('/v1/me/storefront');
+          const r = await music.api.music('/v1/me/storefront');
           setIsSubscriber(true);
+          const sf = r?.data?.data?.[0]?.id;
+          if (sf) setStorefront(sf);
         } catch {
           setIsSubscriber(false);
           setAuthError('Apple Music subscription required.');
@@ -145,6 +153,7 @@ export function useAppleMusic({ onEnded, onError } = {}) {
           media: 'music',
           entity: 'song',
           limit: 20,
+          country: storefront,     // use user's actual iTunes store to get correct catalog
         });
         const res     = await fetch(`/api/itunes-search?${params}`);
         const data    = await res.json();
@@ -206,5 +215,7 @@ export function useAppleMusic({ onEnded, onError } = {}) {
     authorize, deauthorize,
     // Playback (mirrors useYouTube)
     ready, play, pause, resume, stop,
+    // User's iTunes store country code — pass to background resolvers
+    storefront,
   };
 }
