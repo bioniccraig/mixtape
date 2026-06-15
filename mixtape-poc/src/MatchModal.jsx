@@ -1,9 +1,26 @@
 import { useState, useEffect } from 'react';
 import { searchYouTube, parseYouTubeId } from './matching';
 
-// Confirm-at-build review: the creator verifies (and if needed swaps) the YouTube
-// version matched to a track before the tape is sent. Catching wrong versions here
-// means the recipient never hits one.
+// In-memory cache: query string → { configured, items }
+// Avoids burning YouTube API quota on repeated searches for the same track.
+const searchCache = new Map();
+
+async function cachedSearch(q) {
+  if (searchCache.has(q)) return searchCache.get(q);
+  const result = await searchYouTube(q);
+  // Only cache successful results (not rate-limit responses)
+  if (result.configured && result.items.length > 0) searchCache.set(q, result);
+  return result;
+}
+
+// Classify the API response so we can show a specific message
+function getSearchState(configured, items, searched) {
+  if (!searched) return 'idle';
+  if (!configured) return 'unavailable'; // 429 quota / not set up
+  if (items.length === 0) return 'no_results';
+  return 'results';
+}
+
 export default function MatchModal({ track, side, onConfirm, onClose }) {
   const [ytId,      setYtId]      = useState(track.ytId || null);
   const [ytTitle,   setYtTitle]   = useState(track.ytTitle || '');
@@ -12,6 +29,7 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
   const [results,   setResults]   = useState([]);
   const [searching, setSearching] = useState(false);
   const [configured,setConfigured]= useState(true);
+  const [searched,  setSearched]  = useState(false);
   const [pasteVal,  setPasteVal]  = useState('');
   const [pasteErr,  setPasteErr]  = useState('');
 
@@ -21,20 +39,22 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
   async function runSearch(q) {
     setSearching(true);
     try {
-      const { configured: cfg, items } = await searchYouTube(q);
+      const { configured: cfg, items } = await cachedSearch(q);
       setConfigured(cfg);
       setResults(items);
+      setSearched(true);
     } catch {
       setConfigured(false);
       setResults([]);
+      setSearched(true);
     } finally {
       setSearching(false);
     }
   }
 
+  // Auto-search when switching to search mode (uses cache if available)
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (mode === 'search' && results.length === 0) runSearch(defaultQuery);
+    if (mode === 'search' && !searched) runSearch(defaultQuery);
   }, [mode]); // eslint-disable-line
 
   function choose(id, title, channel) {
@@ -60,6 +80,8 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
       ytConfirmed: true,
     });
   }
+
+  const searchState = getSearchState(configured, results, searched);
 
   return (
     <div className="mm-overlay" onClick={onClose}>
@@ -126,10 +148,12 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
               </button>
             </div>
 
-            {!configured && (
+            {/* Quota / unavailable — paste fallback with clear explanation */}
+            {searchState === 'unavailable' && (
               <div className="mm-paste">
                 <p className="mm-hint">
-                  YouTube search isn't switched on yet. Paste the correct YouTube link instead:
+                  YouTube search is temporarily unavailable (daily limit reached — resets overnight).
+                  Paste a YouTube link directly instead:
                 </p>
                 <div className="mm-searchrow">
                   <input
@@ -144,7 +168,8 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
               </div>
             )}
 
-            {configured && results.map(r => (
+            {/* Search results */}
+            {searchState === 'results' && results.map(r => (
               <button key={r.youtubeId} className="mm-result" onClick={() => choose(r.youtubeId, r.title, r.channel)}>
                 {r.thumbnail && <img src={r.thumbnail} alt="" className="mm-result-thumb" />}
                 <div className="mm-result-info">
@@ -153,7 +178,8 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
                 </div>
               </button>
             ))}
-            {configured && !searching && results.length === 0 && (
+
+            {searchState === 'no_results' && !searching && (
               <p className="mm-hint">No results — try different search words.</p>
             )}
 
