@@ -143,16 +143,44 @@ export function useAppleMusic({ onEnded, onError } = {}) {
           term: `${title} ${artist}`,
           media: 'music',
           entity: 'song',
-          limit: 5,
+          limit: 10,
         });
-        const res  = await fetch(`/api/itunes-search?${params}`);
-        const data = await res.json();
-        const lc   = s => (s || '').toLowerCase();
+        const res     = await fetch(`/api/itunes-search?${params}`);
+        const data    = await res.json();
+        const results = data.results || [];
+        const lc      = s => (s || '').toLowerCase();
 
-        // Prefer exact title+artist match; fall back to first result
-        const match = (data.results || []).find(r =>
-          lc(r.trackName) === lc(title) && lc(r.artistName) === lc(artist)
-        ) || data.results?.[0];
+        // Score each result — prefer studio version over live/remix, prefer
+        // closer title matches. Deezer titles sometimes differ slightly from
+        // iTunes (e.g. "Killing in the Name of" vs "Killing in the Name"),
+        // so we use contains-matching rather than strict equality.
+        function scoreResult(r) {
+          const tn = lc(r.trackName);
+          const an = lc(r.artistName);
+          const t  = lc(title);
+          const a  = lc(artist);
+          let score = 0;
+
+          // Artist similarity
+          if (an === a)               score += 10;
+          else if (an.includes(a) || a.includes(an)) score += 5;
+
+          // Title similarity
+          if (tn === t)               score += 10;
+          else if (tn.includes(t) || t.includes(tn)) score += 5;
+
+          // Penalise live / remix / remaster versions heavily
+          if (/\(live[\s,)]|\blive\b at/i.test(r.trackName)) score -= 8;
+          if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.trackName)) score -= 4;
+
+          return score;
+        }
+
+        const match = results
+          .map(r => ({ r, score: scoreResult(r) }))
+          .filter(({ score }) => score > 0)
+          .sort((a, b) => b.score - a.score)[0]?.r
+          || results[0];
 
         if (!match) throw new Error(`"${title}" not found on Apple Music`);
         catalogId = String(match.trackId);
