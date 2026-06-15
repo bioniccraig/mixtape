@@ -67,7 +67,6 @@ export default function FrontCover({
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 style={{ display: 'none' }}
                 onChange={e => {
                   const f = e.target.files?.[0];
