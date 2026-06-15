@@ -27,7 +27,7 @@ export function searchTracks({ artist = '', track = '', album = '' } = {}) {
     term,
     media: 'music',
     entity: 'song',
-    limit: 25,
+    limit: 50,
     ...(attribute ? { attribute } : {}),
   });
 
@@ -39,9 +39,18 @@ export function searchTracks({ artist = '', track = '', album = '' } = {}) {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
+          const lc = s => (s || '').toLowerCase();
           resolve(
             data.results
-              .filter(t => t.trackName && t.trackTimeMillis)
+              .filter(r => r.trackName && r.trackTimeMillis)
+              // Client-side enforcement: iTunes attribute search leaks results
+              // where the term appears in other fields (e.g. album search returns
+              // tracks whose title matches). We re-filter strictly here.
+              .filter(r => {
+                if (al && !lc(r.collectionName).includes(lc(al))) return false;
+                if (a  && !lc(r.artistName).includes(lc(a)))      return false;
+                return true;
+              })
               .map(formatTrack)
           );
         } catch (e) {
