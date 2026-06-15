@@ -1556,6 +1556,7 @@ body {
   margin: 0 auto 8px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   background: #1a1a2e;
+  flex-shrink: 0; /* hold size when sibling content grows — panel scrolls instead */
 }
 
 /* Uploaded photo — full bleed */
