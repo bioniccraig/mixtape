@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import CassetteSVG from './Cassette';
 import JCard from './JCard';
 import { useYouTube } from './useYouTube';
+import { useAppleMusic } from './useAppleMusic';
+import EngineToggle from './EngineToggle';
 import { logEvent, getTapeId } from './db';
 
 // Generate (or reuse) a session UUID stored in sessionStorage.
@@ -26,6 +28,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard, setShowJCard] = useState(false);
   const [toast,     setToast]     = useState(null);
+  const [engine,    setEngine]    = useState('youtube'); // 'youtube' | 'apple'
 
   // ── Analytics: fire tape_opened on mount ─────────────────────────────────
   useEffect(() => {
@@ -73,6 +76,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     onError: () => { showMsg("Skipping — this track can't play here"); advanceRef.current(); },
   });
 
+  const am = useAppleMusic({
+    onEnded: () => advanceRef.current(),
+    onError: () => { showMsg("Skipping — Apple Music can't play this track"); advanceRef.current(); },
+  });
+
   // Tracks the currently-loaded video so we only (re)load on an actual track change —
   // not on pause/resume or unrelated re-renders.
   const loadedIdRef = useRef(null);
@@ -105,20 +113,46 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
       .finally(() => setEnriched(true));
   }, []); // eslint-disable-line
 
-  // ── Drive the YouTube engine off playback state ──
+  // ── Reset loaded track when engine switches so the new engine reloads it ──
   useEffect(() => {
-    if (!playing) { yt.stop(); loadedIdRef.current = null; return; }
-    const track = (playingSide === 'A' ? tracksA : tracksB)[playingIndex];
-    if (!track) { setPlaying(false); return; }
-    if (!track.ytId) {
-      showMsg(`Skipping "${track.title}" — no match`);
-      advanceRef.current();
+    loadedIdRef.current = null;
+    yt.stop();
+    am.stop();
+  }, [engine]); // eslint-disable-line
+
+  // ── Drive the active engine off playback state ────────────────────────────
+  useEffect(() => {
+    if (!playing) {
+      yt.stop();
+      am.stop();
+      loadedIdRef.current = null;
       return;
     }
-    if (loadedIdRef.current === track.ytId) return; // already loaded — don't restart
-    loadedIdRef.current = track.ytId;
-    yt.play(track.ytId);
-  }, [playing, playingSide, playingIndex, tracksA, tracksB]); // eslint-disable-line
+    const track = (playingSide === 'A' ? tracksA : tracksB)[playingIndex];
+    if (!track) { setPlaying(false); return; }
+
+    if (engine === 'apple') {
+      // Apple Music uses the iTunes track id directly
+      if (!track.id) {
+        showMsg(`Skipping "${track.title}" — no Apple Music ID`);
+        advanceRef.current();
+        return;
+      }
+      if (loadedIdRef.current === `am:${track.id}`) return;
+      loadedIdRef.current = `am:${track.id}`;
+      am.play(track.id);
+    } else {
+      // YouTube
+      if (!track.ytId) {
+        showMsg(`Skipping "${track.title}" — no match`);
+        advanceRef.current();
+        return;
+      }
+      if (loadedIdRef.current === `yt:${track.ytId}`) return;
+      loadedIdRef.current = `yt:${track.ytId}`;
+      yt.play(track.ytId);
+    }
+  }, [playing, playingSide, playingIndex, tracksA, tracksB, engine]); // eslint-disable-line
 
   // Start, or pause/resume keeping position (no reload, so the spot is kept).
   function togglePlayPause() {
@@ -134,10 +168,10 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
         });
       }
     } else if (paused) {
-      yt.resume();
+      engine === 'apple' ? am.resume() : yt.resume();
       setPaused(false);
     } else {
-      yt.pause();
+      engine === 'apple' ? am.pause() : yt.pause();
       setPaused(true);
     }
   }
@@ -176,7 +210,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const nowPlaying = playing
     ? (playingSide === 'A' ? tracksA : tracksB)[playingIndex]
     : null;
-  const canPlay = enriched && yt.ready;
+  const canPlay = enriched && (engine === 'apple' ? am.ready : yt.ready);
 
   return (
     <div className="player">
@@ -220,8 +254,8 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             />
           </div>
 
-          {/* YouTube screen — visible while playing (kept in DOM so the player can attach) */}
-          <div className={`yt-frame ${playing ? 'show' : ''}`}>
+          {/* YouTube screen — only shown when using YouTube engine */}
+          <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
             <div id="yt-player-recipient" />
           </div>
 
@@ -250,6 +284,8 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             <button className="tp-btn" onClick={next} disabled={!playing} title="Next track">⏭</button>
             <button className="tp-btn" onClick={stop} disabled={!playing} title="Stop">⏹</button>
           </div>
+
+          <EngineToggle engine={engine} onEngineChange={setEngine} am={am} />
 
           {!user && onSignInRequest && (
             <div className="player-signin-nudge">
