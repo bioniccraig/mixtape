@@ -55,42 +55,43 @@ function TrackRow({ track, onAdd, disabled }) {
   );
 }
 
-// ── Match badge — shows the YouTube-match state of a track ──────────────────────
+// ── Match badge — shows YouTube or Apple Music match state with a text label ──
+// Rendered as a small "YouTube ✓" / "Apple Music !" chip so users know what it does.
+
 function MatchBadge({ track, onCheck }) {
   const status = track.ytStatus || 'pending';
-  let cls = 'match-badge', icon, title;
-  if (status === 'none') { cls += ' none'; icon = '!'; title = 'No match — tap to fix'; }
-  else if (status === 'error') { cls += ' none'; icon = '↻'; title = 'Match failed — tap to retry'; }
-  else if (status === 'ok' && track.ytConfirmed) { cls += ' confirmed'; icon = '✓'; title = 'Match confirmed'; }
-  else if (status === 'ok') { cls += ' ok'; icon = '✓'; title = 'Matched — tap to check'; }
-  else { cls += ' pending'; icon = '⟳'; title = 'Finding a match…'; }
+  let cls = 'match-badge', icon, tip;
+  if (status === 'none')                       { cls += ' none';      icon = '!'; tip = 'No YouTube match found — tap to search manually'; }
+  else if (status === 'error')                 { cls += ' none';      icon = '↻'; tip = 'YouTube match failed — tap to retry'; }
+  else if (status === 'ok' && track.ytConfirmed) { cls += ' confirmed'; icon = '✓'; tip = 'YouTube version confirmed'; }
+  else if (status === 'ok')                    { cls += ' ok';        icon = '✓'; tip = 'YouTube version found — tap to review or change'; }
+  else                                         { cls += ' pending';   icon = '⟳'; tip = 'Finding YouTube version…'; }
   return (
-    <button
-      className={cls}
-      title={title}
-      onClick={onCheck}
-      disabled={status === 'pending'}
-    >{icon}</button>
+    <button className={cls} title={tip} onClick={onCheck} disabled={status === 'pending'}>
+      <span className="badge-service">YouTube</span>
+      <span className="badge-icon">{icon}</span>
+    </button>
   );
 }
 
-// ── Apple Music match badge ───────────────────────────────────────────────────
 function AppleMusicBadge({ track, onCheck }) {
   const status = track.appleStatus || 'pending';
-  let cls = 'match-badge apple-badge', icon, title;
-  if (status === 'none')  { cls += ' none';    icon = '!'; title = 'No Apple Music match — tap to fix'; }
-  else if (status === 'error') { cls += ' none'; icon = '↻'; title = 'Apple Music lookup failed — tap to retry'; }
-  else if (status === 'ok')    { cls += ' ok';   icon = ''; title = `Apple Music: ${track.appleTitle || 'matched'} — tap to change`; }
-  else                         { cls += ' pending'; icon = '⟳'; title = 'Finding Apple Music version…'; }
+  let cls = 'match-badge apple-badge', icon, tip;
+  if (status === 'none')        { cls += ' none';    icon = '!'; tip = 'No Apple Music version found — tap to search manually'; }
+  else if (status === 'error')  { cls += ' none';    icon = '↻'; tip = 'Apple Music lookup failed — tap to retry'; }
+  else if (status === 'ok')     { cls += ' ok';      icon = '✓'; tip = `Apple Music version: ${track.appleTitle || 'found'} — tap to review or change`; }
+  else                          { cls += ' pending'; icon = '⟳'; tip = 'Finding Apple Music version…'; }
   return (
-    <button className={cls} title={title} onClick={onCheck} disabled={status === 'pending'}>
-      {icon || ''}
+    <button className={cls} title={tip} onClick={onCheck} disabled={status === 'pending'}>
+      <span className="badge-service">Apple Music</span>
+      <span className="badge-icon">{icon}</span>
     </button>
   );
 }
 
 // ── Tape track (on the tape) ──────────────────────────────────────────────────
-function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck, onAppleCheck }) {
+// Only shows the badge for the active engine so the UI stays uncluttered.
+function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck, onAppleCheck, engine }) {
   return (
     <div className={`tape-track ${isPlaying ? 'tape-track-playing' : ''}`}>
       <span className="tape-track-num">{isPlaying ? '▶' : index + 1}</span>
@@ -98,8 +99,8 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck, 
         <span className="tape-track-title">{track.title}</span>
         <span className="tape-track-artist">{track.artist}</span>
       </div>
-      <MatchBadge track={track} onCheck={onCheck} />
-      <AppleMusicBadge track={track} onCheck={onAppleCheck} />
+      {engine === 'youtube' && <MatchBadge      track={track} onCheck={onCheck} />}
+      {engine === 'apple'   && <AppleMusicBadge track={track} onCheck={onAppleCheck} />}
       <span className="tape-track-dur">{track.durationLabel}</span>
       <div className="tape-track-controls">
         <button onClick={() => onMove(index, -1)} disabled={index === 0}           className="move-btn">↑</button>
@@ -620,6 +621,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                   isPlaying={playing && playingSide === activeSide && playingIndex === i}
                   onRemove={idx => removeTrack(activeSide, idx)}
                   onMove={(idx, dir) => moveTrack(activeSide, idx, dir)}
+                  engine={engine}
                   onCheck={() => openReview(activeSide, t)}
                   onAppleCheck={() => openAppleReview(activeSide, t)}
                 />
