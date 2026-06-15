@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadMyTapes, getReceivedTapes, deleteTape } from './db';
+import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts } from './db';
 import { TAPE_SKINS, DEFAULT_SKIN } from './constants';
 
 function skinThumb(skinId) {
@@ -20,7 +20,7 @@ function trackCount(tape) {
 }
 
 // ── Single tape card ───────────────────────────────────────────────────────────
-function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit }) {
+function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit, likeCount }) {
   const [confirming, setConfirming] = useState(false);
   const thumb = skinThumb(tape.skin);
   const name  = tape.tape_name || tape.tapeName || 'Untitled tape';
@@ -39,6 +39,9 @@ function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit }) {
         <span className="lib-card-meta">
           {count} track{count !== 1 ? 's' : ''}
           {isDraft && <span className="lib-draft-badge">Draft</span>}
+          {!isDraft && likeCount > 0 && (
+            <span className="lib-like-count">❤️ {likeCount}</span>
+          )}
         </span>
         <span className="lib-card-date">{formatDate(tape.updated_at || tape.created_at)}</span>
       </div>
@@ -68,11 +71,12 @@ function TapeCard({ tape, onPlay, onEdit, onDelete, showEdit }) {
 
 // ── Main library modal ─────────────────────────────────────────────────────────
 export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
-  const [tab,       setTab]       = useState('mine');
-  const [myTapes,   setMyTapes]   = useState([]);
-  const [received,  setReceived]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState(null);
+  const [tab,        setTab]        = useState('mine');
+  const [myTapes,    setMyTapes]    = useState([]);
+  const [received,   setReceived]   = useState([]);
+  const [likeCounts, setLikeCounts] = useState({});
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -80,10 +84,20 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
     Promise.all([
       loadMyTapes(user.id),
       getReceivedTapes(user.id),
-    ]).then(([mine, recv]) => {
+    ]).then(async ([mine, recv]) => {
       if (mine.error) setError(mine.error);
       setMyTapes(mine.tapes);
       setReceived(recv.tapes);
+
+      // Fetch like counts for creator's tapes
+      const publishedIds = mine.tapes
+        .filter(t => t.status === 'published')
+        .map(t => t.id);
+      if (publishedIds.length) {
+        const counts = await getReactionCounts(publishedIds);
+        setLikeCounts(counts);
+      }
+
       setLoading(false);
     });
   }, [user]);
@@ -137,6 +151,7 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
               onEdit={t => { onEdit(t); onClose(); }}
               onDelete={handleDelete}
               showEdit={tab === 'mine'}
+              likeCount={tab === 'mine' ? (likeCounts[tape.id] || 0) : 0}
             />
           ))}
         </div>

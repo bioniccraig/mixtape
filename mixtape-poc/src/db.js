@@ -229,6 +229,73 @@ function _rowToTape(data) {
 }
 
 
+// ── Reactions (likes) ─────────────────────────────────────────────────────────
+
+// Toggle a ❤️ on a tape. Returns the new liked state + total count.
+export async function toggleReaction(tapeId, userId) {
+  if (!supabase) return { liked: false, count: 0, error: 'Supabase not configured' };
+
+  const { data: existing } = await supabase
+    .from('reactions')
+    .select('id')
+    .eq('tape_id', tapeId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from('reactions').delete().eq('id', existing.id);
+  } else {
+    await supabase.from('reactions').insert({ tape_id: tapeId, user_id: userId });
+  }
+
+  const { count } = await supabase
+    .from('reactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('tape_id', tapeId);
+
+  return { liked: !existing, count: count || 0, error: null };
+}
+
+// Get reaction state for a single tape — total count + whether this user liked it.
+export async function getReactionState(tapeId, userId) {
+  if (!supabase) return { liked: false, count: 0 };
+
+  const [countRes, userRes] = await Promise.all([
+    supabase
+      .from('reactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('tape_id', tapeId),
+    userId
+      ? supabase
+          .from('reactions')
+          .select('id')
+          .eq('tape_id', tapeId)
+          .eq('user_id', userId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  return { liked: !!userRes.data, count: countRes.count || 0 };
+}
+
+// Get like counts for multiple tapes at once (for My Library creator view).
+// Returns { [tapeId]: count }
+export async function getReactionCounts(tapeIds) {
+  if (!supabase || !tapeIds.length) return {};
+
+  const { data } = await supabase
+    .from('reactions')
+    .select('tape_id')
+    .in('tape_id', tapeIds);
+
+  const counts = {};
+  (data || []).forEach(r => {
+    counts[r.tape_id] = (counts[r.tape_id] || 0) + 1;
+  });
+  return counts;
+}
+
+
 // ── Log analytics event ───────────────────────────────────────────────────────
 export async function logEvent({ tapeId, eventType, sessionId, viewerId = null, metadata = {} }) {
   if (!supabase || !tapeId) return;

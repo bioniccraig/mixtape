@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import JCard from './JCard';
 import FrontCover from './FrontCover';
 import CassetteSVG from './Cassette';
+import ReactionButton from './ReactionButton';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
@@ -315,6 +316,15 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
               spinning={playing && !paused}
             />
           </div>
+
+          {/* Reaction — hidden from the tape's own creator */}
+          {tape.creatorId !== user?.id && (
+            <ReactionButton
+              tapeId={tape.dbId}
+              user={user}
+              onSignInRequest={onSignInRequest}
+            />
+          )}
 
           {/* YouTube screen — only shown when using YouTube engine */}
           <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>
