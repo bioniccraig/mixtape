@@ -12,14 +12,17 @@ function trackToRow(t) {
     durationMs:    t.durationMs,
     durationLabel: t.durationLabel,
     platform_ids: {
-      youtube:     t.ytId || null,
-      // apple_music: null  ← slot ready for M2b
+      youtube:     t.ytId      || null,
+      apple_music: t.appleId   || null,
+      apple_title: t.appleTitle || null,
+      apple_album: t.appleAlbum || null,
     },
     ytConfirmed: !!t.ytConfirmed,
   };
 }
 
 function rowToTrack(r) {
+  const appleId = r.platform_ids?.apple_music || null;
   return {
     id:            r.id,
     title:         r.title,
@@ -31,6 +34,10 @@ function rowToTrack(r) {
     ytId:          r.platform_ids?.youtube || null,
     ytStatus:      r.platform_ids?.youtube ? 'ok' : 'none',
     ytConfirmed:   !!r.ytConfirmed,
+    appleId,
+    appleTitle:    r.platform_ids?.apple_title || null,
+    appleAlbum:    r.platform_ids?.apple_album || null,
+    appleStatus:   appleId ? 'ok' : 'none',
     previewUrl:    null,
   };
 }
