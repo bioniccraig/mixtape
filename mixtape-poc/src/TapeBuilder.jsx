@@ -138,9 +138,9 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   // DB state — populated when tape has been saved
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
   const [shareId,   setShareId]   = useState(initialTape?.shareId || null);
-  const [saveLabel,     setSaveLabel]     = useState('Save');
-  const [shareLabel,    setShareLabel]    = useState('Copy link 🔗');
-  const [whatsAppLabel, setWhatsAppLabel] = useState('WhatsApp');
+  const [saveLabel,   setSaveLabel]   = useState('Save');
+  const [shareLabel,  setShareLabel]  = useState('Copy link 🔗');
+  const [nativeLabel, setNativeLabel] = useState('Share 📤');
 
   const searchTimer = useRef(null);
 
@@ -454,14 +454,27 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setTimeout(() => setShareLabel('Copy link 🔗'), 2500);
   }
 
-  async function handleWhatsApp() {
-    setWhatsAppLabel('Saving…');
+  async function handleNativeShare() {
+    setNativeLabel('Saving…');
     const url = await publishTape();
-    if (!url) { setWhatsAppLabel('WhatsApp'); return; }
+    if (!url) { setNativeLabel('Share 📤'); return; }
     const name = tapeName ? `"${tapeName}"` : 'a mixtape';
-    const text = `I made you ${name} 🎵 Listen here: ${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    setWhatsAppLabel('WhatsApp');
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: name,
+          text: `I made you ${name} 🎵`,
+          url,
+        });
+      } catch (e) {
+        // user cancelled — do nothing
+      }
+    } else {
+      // fallback: open WhatsApp (desktop where Web Share API isn't supported)
+      const text = `I made you ${name} 🎵 Listen here: ${url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+    setNativeLabel('Share 📤');
   }
 
   const [mobilePanel, setMobilePanel] = useState('search');
@@ -504,8 +517,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             </button>
           )}
           {hasTracks && (
-            <button className="whatsapp-btn" onClick={handleWhatsApp} title="Share via WhatsApp">
-              {whatsAppLabel}
+            <button className="native-share-btn" onClick={handleNativeShare} title="Share">
+              {nativeLabel}
             </button>
           )}
           <button className="logout-btn" onClick={onBack}>← Back</button>

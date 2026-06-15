@@ -617,8 +617,8 @@ body {
 }
 .share-btn:hover { transform: scale(1.04); box-shadow: 0 3px 14px rgba(232,93,117,0.4); }
 
-.whatsapp-btn {
-  background: #25D366;
+.native-share-btn {
+  background: #863bff;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -628,7 +628,7 @@ body {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.whatsapp-btn:hover { transform: scale(1.04); box-shadow: 0 3px 14px rgba(37,211,102,0.4); }
+.native-share-btn:hover { transform: scale(1.04); box-shadow: 0 3px 14px rgba(134,59,255,0.4); }
 
 /* ── View toggle (Tape / Sleeve) ────────────────────────────────────── */
 .view-toggle { display: flex; gap: 6px; }
