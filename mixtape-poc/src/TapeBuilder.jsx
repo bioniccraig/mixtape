@@ -296,46 +296,38 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     }
   }
 
-  // Resolve Apple Music catalog ID in the background — same scoring as useAppleMusic
-  // but stored on the track so the user can review/swap it before sharing.
+  // Resolve Apple Music catalog ID in the background using the Apple Music Catalog API
+  // (same backend as the Apple Music app — returns studio versions reliably).
   async function resolveAppleMatch(track, side) {
     try {
-      const params = new URLSearchParams({
-        term: track.title,
-        attribute: 'songTerm',   // search song titles only; artist filter done by scoring
-        media: 'music',
-        entity: 'song',
-        limit: 20,
-        country: storefront,     // user's actual iTunes store
-      });
-      const res     = await fetch(`/api/itunes-search?${params}`);
-      const data    = await res.json();
-      const results = data.results || [];
-      const lc      = s => (s || '').toLowerCase();
+      const params = new URLSearchParams({ term: track.title, storefront, limit: 20 });
+      const res    = await fetch(`/api/apple-search?${params}`);
+      const data   = await res.json();
+      const songs  = data.songs || [];
+      const lc     = s => (s || '').toLowerCase();
 
       function score(r) {
-        const tn = lc(r.trackName), an = lc(r.artistName);
+        const tn = lc(r.name), an = lc(r.artistName);
         const t  = lc(track.title), a  = lc(track.artist);
-        // Artist must match — wrong artist = disqualified
         const artistScore = an === a ? 10 : (an.includes(a) || a.includes(an)) ? 5 : -99;
         if (artistScore < 0) return -99;
         let s = artistScore;
         if (tn === t)                        s += 10; else if (tn.includes(t) || t.includes(tn)) s += 5;
-        if (/\(live[\s,)]|\blive\b at/i.test(r.trackName))              s -= 8;
-        if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.trackName)) s -= 4;
+        if (/\(live[\s,)]|\blive\b at/i.test(r.name))                    s -= 8;
+        if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.name)) s -= 4;
         return s;
       }
 
-      const match = results
+      const match = songs
         .map(r => ({ r, s: score(r) }))
         .filter(x => x.s > 0)
-        .sort((a, b) => b.s - a.s)[0]?.r || results[0];
+        .sort((a, b) => b.s - a.s)[0]?.r || songs[0];
 
       if (match) {
         patchTrack(side, track.id, {
-          appleId:     String(match.trackId),
-          appleTitle:  match.trackName,
-          appleAlbum:  match.collectionName || '',
+          appleId:     String(match.id),
+          appleTitle:  match.name,
+          appleAlbum:  match.albumName || '',
           appleStatus: 'ok',
         });
       } else {

@@ -147,51 +147,35 @@ export function useAppleMusic({ onEnded, onError } = {}) {
       let catalogId = knownCatalogId || itunesIdCache.get(cacheKey);
 
       if (!catalogId) {
-        const params = new URLSearchParams({
-          term: title,
-          attribute: 'songTerm',   // search song titles only; artist filter done by scoring
-          media: 'music',
-          entity: 'song',
-          limit: 20,
-          country: storefront,     // use user's actual iTunes store to get correct catalog
-        });
-        const res     = await fetch(`/api/itunes-search?${params}`);
-        const data    = await res.json();
-        const results = data.results || [];
-        const lc      = s => (s || '').toLowerCase();
+        // Use the Apple Music Catalog API (same backend as the app) — finds studio
+        // versions that the legacy iTunes Search API consistently misses.
+        const params = new URLSearchParams({ term: title, storefront, limit: 20 });
+        const res    = await fetch(`/api/apple-search?${params}`);
+        const data   = await res.json();
+        const songs  = data.songs || [];
+        const lc     = s => (s || '').toLowerCase();
 
-        // Score each result — prefer studio version over live/remix/tribute.
-        // Artist MUST match (wrong artist = -99 / disqualified) so tribute bands
-        // like "Rage Against Power Machines" can never beat the real artist.
         function scoreResult(r) {
-          const tn = lc(r.trackName);
-          const an = lc(r.artistName);
-          const t  = lc(title);
-          const a  = lc(artist);
-
-          // Artist must match — if neither string contains the other, disqualify
+          const tn = lc(r.name), an = lc(r.artistName);
+          const t  = lc(title),  a  = lc(artist);
           const artistScore = an === a ? 10 : (an.includes(a) || a.includes(an)) ? 5 : -99;
           if (artistScore < 0) return -99;
-
           let score = artistScore;
           if (tn === t)               score += 10;
           else if (tn.includes(t) || t.includes(tn)) score += 5;
-
-          // Penalise live / remix / remaster versions heavily
-          if (/\(live[\s,)]|\blive\b at/i.test(r.trackName)) score -= 8;
-          if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.trackName)) score -= 4;
-
+          if (/\(live[\s,)]|\blive\b at/i.test(r.name)) score -= 8;
+          if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.name)) score -= 4;
           return score;
         }
 
-        const match = results
+        const match = songs
           .map(r => ({ r, score: scoreResult(r) }))
           .filter(({ score }) => score > 0)
           .sort((a, b) => b.score - a.score)[0]?.r
-          || results[0];
+          || songs[0];
 
         if (!match) throw new Error(`"${title}" not found on Apple Music`);
-        catalogId = String(match.trackId);
+        catalogId = String(match.id);
         itunesIdCache.set(cacheKey, catalogId);
       }
 

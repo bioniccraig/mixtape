@@ -1,6 +1,7 @@
 // AppleMatchModal.jsx
 // Lets the creator review and swap the Apple Music version that will play
 // for Apple Music subscribers. Mirrors the YouTube MatchModal pattern.
+// Uses /api/apple-search (Apple Music Catalog API) for accurate studio-version results.
 
 import { useState, useEffect } from 'react';
 
@@ -9,18 +10,16 @@ export default function AppleMatchModal({ track, side, storefront = 'gb', onConf
   const [searching,  setSearching]  = useState(false);
   const [selected,   setSelected]   = useState(track.appleId   || null);
   const [selTitle,   setSelTitle]   = useState(track.appleTitle || '');
-  const [selAlbum,   setSelAlbum]   = useState('');
+  const [selAlbum,   setSelAlbum]   = useState(track.appleAlbum || '');
   const [query,      setQuery]      = useState(track.title);
 
   async function runSearch(q) {
     setSearching(true);
     try {
-      // Search by song title only — keeps cover/tribute bands out of results.
-      // The user can type artist name manually if they need to narrow further.
-      const params = new URLSearchParams({ term: q, attribute: 'songTerm', media: 'music', entity: 'song', limit: 15, country: storefront });
-      const res  = await fetch(`/api/itunes-search?${params}`);
+      const params = new URLSearchParams({ term: q, storefront, limit: 20 });
+      const res  = await fetch(`/api/apple-search?${params}`);
       const data = await res.json();
-      setResults(data.results || []);
+      setResults(data.songs || []);
     } catch {
       setResults([]);
     } finally {
@@ -32,9 +31,9 @@ export default function AppleMatchModal({ track, side, storefront = 'gb', onConf
   useEffect(() => { runSearch(query); }, []); // eslint-disable-line
 
   function pick(r) {
-    setSelected(String(r.trackId));
-    setSelTitle(r.trackName);
-    setSelAlbum(r.collectionName || '');
+    setSelected(String(r.id));
+    setSelTitle(r.name);
+    setSelAlbum(r.albumName || '');
   }
 
   function confirm() {
@@ -87,18 +86,18 @@ export default function AppleMatchModal({ track, side, storefront = 'gb', onConf
         <div className="apple-match-results">
           {results.map(r => (
             <button
-              key={r.trackId}
-              className={`apple-match-result ${selected === String(r.trackId) ? 'selected' : ''}`}
+              key={r.id}
+              className={`apple-match-result ${selected === String(r.id) ? 'selected' : ''}`}
               onClick={() => pick(r)}
             >
-              {r.artworkUrl100 && (
-                <img src={r.artworkUrl100} alt="" className="mm-result-thumb" />
+              {r.artworkUrl && (
+                <img src={r.artworkUrl} alt="" className="mm-result-thumb" />
               )}
               <div className="mm-result-info">
-                <span className="mm-result-title">{r.trackName}</span>
-                <span className="mm-result-channel">{r.artistName} · {r.collectionName}</span>
+                <span className="mm-result-title">{r.name}</span>
+                <span className="mm-result-channel">{r.artistName} · {r.albumName}</span>
               </div>
-              {selected === String(r.trackId) && <span className="apple-match-tick">✓</span>}
+              {selected === String(r.id) && <span className="apple-match-tick">✓</span>}
             </button>
           ))}
           {!searching && results.length === 0 && (
