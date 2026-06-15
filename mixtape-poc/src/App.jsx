@@ -92,6 +92,7 @@ export default function App() {
         <TapePlayer
           tape={tape}
           user={user}
+          onSignInRequest={() => setShowAuth(true)}
           onMakeOwn={() => {
             window.history.replaceState({}, '', '/');
             setTape(null);

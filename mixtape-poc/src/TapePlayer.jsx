@@ -186,9 +186,17 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           <span className="logo-icon">◼</span>
           <span className="logo-text">MixTape</span>
         </div>
-        <button className="share-btn" onClick={onMakeOwn}>
-          Make Your Own ✦
-        </button>
+        <div className="header-actions">
+          {!user && onSignInRequest && (
+            <button className="btn-auth-link" onClick={onSignInRequest}>Sign in / Sign up</button>
+          )}
+          {user && (
+            <span className="auth-status-small">{user.email}</span>
+          )}
+          <button className="share-btn" onClick={onMakeOwn}>
+            Make Your Own ✦
+          </button>
+        </div>
       </header>
 
       <div className="player-body">
@@ -242,6 +250,13 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             <button className="tp-btn" onClick={next} disabled={!playing} title="Next track">⏭</button>
             <button className="tp-btn" onClick={stop} disabled={!playing} title="Stop">⏹</button>
           </div>
+
+          {!user && onSignInRequest && (
+            <div className="player-signin-nudge">
+              <span>Sign in to save this tape to your library</span>
+              <button className="btn-auth-link" onClick={onSignInRequest}>Sign in / Sign up</button>
+            </div>
+          )}
 
           <div className="player-controls">
             <button
