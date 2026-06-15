@@ -39,21 +39,26 @@ async function searchByAlbum(albumName) {
     media: 'music',
     entity: 'album',
     attribute: 'albumTerm',
-    limit: 5,
+    limit: 10,  // cast wide so we can find exact matches
   });
   const albumData = await xhr(`${ITUNES_SEARCH}?${albumParams}`);
 
   const albums = (albumData.results || []).filter(r => r.collectionType === 'Album');
   if (!albums.length) return [];
 
-  // Step 2: look up songs from the top matching album(s)
-  const ids = albums.slice(0, 3).map(a => a.collectionId).join(',');
+  // Prefer exact album name matches — critical for self-titled albums like "Blur" by Blur,
+  // where many albums may contain the word "blur" but only one IS called "Blur".
+  const exactMatches = albums.filter(a => lc(a.collectionName) === lc(albumName));
+  const candidates = exactMatches.length > 0 ? exactMatches : albums;
+
+  // Step 2: look up songs from the best matching album(s) — cap at 2 to avoid noise
+  const ids = candidates.slice(0, 2).map(a => a.collectionId).join(',');
   const trackData = await xhr(`${ITUNES_LOOKUP}?id=${ids}&entity=song`);
 
   return (trackData.results || [])
     .filter(r => r.wrapperType === 'track' && r.trackName && r.trackTimeMillis)
-    // Double-check collectionName in case multiple albums were fetched
-    .filter(r => lc(r.collectionName).includes(lc(albumName)))
+    // Exact match on collection name to prevent mixing in tracks from similarly-named albums
+    .filter(r => lc(r.collectionName) === lc(albumName))
     .map(formatTrack);
 }
 
