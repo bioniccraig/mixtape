@@ -101,6 +101,41 @@ body {
 .disclaimer { font-size: 13px; color: #555; }
 .error-msg  { color: #e85d75; font-size: 14px; }
 
+/* Platform badges on splash */
+.splash-platforms {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.splash-platform-label { font-size: 12px; color: #555; }
+.splash-platform-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+.splash-platform-badge.yt { background: #ff0000; color: #fff; }
+.splash-platform-badge.am { background: #fc3c44; color: #fff; }
+
+/* Splash footer */
+.splash-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  text-align: center;
+  background: rgba(13,13,26,0.9);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.splash-footer a { color: #555; font-size: 12px; text-decoration: none; }
+.splash-footer a:hover { color: #e85d75; }
+.splash-footer-sep { color: #333; margin: 0 8px; font-size: 12px; }
+
 /* ── Auth bar (splash) ─────────────────────────────────────────────── */
 .splash { position: relative; }
 .splash-auth-bar {

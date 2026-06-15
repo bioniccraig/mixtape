@@ -160,6 +160,20 @@ export default function App() {
       </button>
       <p className="disclaimer">Search any song from the iTunes catalogue{user ? '' : ' — no login needed'}</p>
 
+      {/* Platform badges */}
+      <div className="splash-platforms">
+        <span className="splash-platform-label">Plays via</span>
+        <span className="splash-platform-badge yt">▶ YouTube</span>
+        <span className="splash-platform-badge am">♫ Apple Music</span>
+      </div>
+
+      {/* Footer with privacy policy link */}
+      <footer className="splash-footer">
+        <a href="/legal#privacy">Privacy Policy</a>
+        <span className="splash-footer-sep">·</span>
+        <a href="/legal#terms">Terms of Service</a>
+      </footer>
+
       {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
       {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
     </div>
