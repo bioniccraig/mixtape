@@ -102,7 +102,9 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [activeSide,   setActiveSide]   = useState('A');
   const [sideA,        setSideA]        = useState(initialTape?.sideA || []);
   const [sideB,        setSideB]        = useState(initialTape?.sideB || []);
-  const [search,       setSearch]       = useState('');
+  const [searchArtist, setSearchArtist] = useState('');
+  const [searchTrack,  setSearchTrack]  = useState('');
+  const [searchAlbum,  setSearchAlbum]  = useState('');
   const [results,      setResults]      = useState([]);
   const [searching,    setSearching]    = useState(false);
   const [playing,      setPlaying]      = useState(false);
@@ -235,12 +237,13 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
   // ── Search ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!search.trim()) { setResults([]); return; }
+    const hasQuery = searchArtist.trim() || searchTrack.trim() || searchAlbum.trim();
+    if (!hasQuery) { setResults([]); return; }
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const r = await searchTracks(search);
+        const r = await searchTracks({ artist: searchArtist, track: searchTrack, album: searchAlbum });
         setResults(r);
       } catch (err) {
         showToast(`${err.name}: ${err.message}`);
@@ -249,7 +252,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         setSearching(false);
       }
     }, 400);
-  }, [search]);
+  }, [searchArtist, searchTrack, searchAlbum]);
 
   function showToast(msg) {
     setToast(msg);
@@ -560,20 +563,43 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         {/* ── Right: Search ── */}
         <div className={`panel panel-search ${mobilePanel !== 'search' ? 'mobile-hide' : ''}`}>
           <div className="search-header">
-            <input
-              className="search-input"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search for a song or artist…"
-              autoFocus
-            />
+            <div className="search-fields">
+              <div className="search-field">
+                <label className="search-field-label">Artist</label>
+                <input
+                  className="search-input"
+                  value={searchArtist}
+                  onChange={e => setSearchArtist(e.target.value)}
+                  placeholder="e.g. Neil Young"
+                  autoFocus
+                />
+              </div>
+              <div className="search-field">
+                <label className="search-field-label">Track</label>
+                <input
+                  className="search-input"
+                  value={searchTrack}
+                  onChange={e => setSearchTrack(e.target.value)}
+                  placeholder="e.g. Harvest Moon"
+                />
+              </div>
+              <div className="search-field">
+                <label className="search-field-label">Album</label>
+                <input
+                  className="search-input"
+                  value={searchAlbum}
+                  onChange={e => setSearchAlbum(e.target.value)}
+                  placeholder="e.g. Harvest"
+                />
+              </div>
+            </div>
             {searching && <span className="searching-spinner">⟳</span>}
           </div>
 
           <div className="track-list">
             {results.length === 0 && !searching && (
               <p className="empty-search">
-                {search ? 'No results found.' : 'Start typing to search millions of songs…'}
+                {(searchArtist || searchTrack || searchAlbum) ? 'No results found.' : 'Fill in any field above to search…'}
               </p>
             )}
             {results.map(track => (

@@ -4,14 +4,31 @@
 // Relative URL — works on any domain, handled by Vercel serverless function
 const ITUNES_PROXY = '/api/itunes-search';
 
-export function searchTracks(query) {
-  if (!query.trim()) return Promise.resolve([]);
+// Search by structured fields: { artist, track, album }
+// Uses iTunes attribute narrowing when only one field is filled.
+export function searchTracks({ artist = '', track = '', album = '' } = {}) {
+  const a = artist.trim(), t = track.trim(), al = album.trim();
+  if (!a && !t && !al) return Promise.resolve([]);
+
+  // Pick the most specific attribute when only one field is filled
+  let term, attribute;
+  const filled = [a, t, al].filter(Boolean);
+  if (filled.length === 1) {
+    term = filled[0];
+    if (a)  attribute = 'artistTerm';
+    if (t)  attribute = 'songTerm';
+    if (al) attribute = 'albumTerm';
+  } else {
+    // Multiple fields — combine them into one query (iTunes handles it well)
+    term = [a, t, al].filter(Boolean).join(' ');
+  }
 
   const params = new URLSearchParams({
-    term: query,
+    term,
     media: 'music',
     entity: 'song',
-    limit: 20,
+    limit: 25,
+    ...(attribute ? { attribute } : {}),
   });
 
   // Use XHR instead of fetch — avoids iOS Safari ITP fetch restrictions
