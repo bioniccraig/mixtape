@@ -32,6 +32,17 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
     if (!r.ok) {
+      // Detect quota exhaustion specifically — different handling from other errors
+      if (r.status === 403) {
+        let body = {};
+        try { body = await r.json(); } catch { /* ignore parse failure */ }
+        const reason = body?.error?.errors?.[0]?.reason;
+        if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+          // Return 429 so the client knows to fire a Sentry alert
+          console.error('[youtube-search] quota exceeded:', reason);
+          return res.status(429).json({ configured: true, quotaExceeded: true, error: 'YouTube API daily quota exceeded', items: [] });
+        }
+      }
       return res.status(r.status).json({ configured: true, error: `YouTube returned ${r.status}`, items: [] });
     }
     const data = await r.json();

@@ -4,6 +4,7 @@
 // with YouTube's terms (the caller renders the target element on screen).
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { capturePlayerError } from './sentry.js';
 
 let apiPromise = null;
 function loadApi() {
@@ -44,7 +45,10 @@ export function useYouTube({ elementId, onEnded, onError }) {
             if (e.data === YT.PlayerState.ENDED) onEndedRef.current?.();
           },
           // 101 & 150 = embedding disabled by owner (Vevo etc); 100 = removed; 2/5 = bad id/HTML5
-          onError: e => onErrorRef.current?.(e.data),
+          onError: e => {
+            capturePlayerError(e.data, null);
+            onErrorRef.current?.(e.data);
+          },
         },
       });
     });

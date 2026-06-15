@@ -23,7 +23,12 @@ export async function matchTrack(track) {
 export async function searchYouTube(query) {
   const r = await fetch(`/api/youtube-search?q=${encodeURIComponent(query)}`);
   if (!r.ok) return { configured: false, items: [] };
-  return r.json();
+  const data = await r.json();
+  // Fire a Sentry alert if the YouTube API daily quota is exhausted
+  if (data.quotaExceeded) {
+    import('./sentry.js').then(({ captureQuotaExceeded }) => captureQuotaExceeded(query));
+  }
+  return data;
 }
 
 // Pull an 11-char YouTube video id out of any pasted YouTube URL or bare id.
