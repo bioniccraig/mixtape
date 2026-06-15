@@ -2,8 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import CassetteSVG from './Cassette';
 import JCard from './JCard';
 import { useYouTube } from './useYouTube';
+import { logEvent, getTapeId } from './db';
 
-export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
+// Generate (or reuse) a session UUID stored in sessionStorage.
+// Groups multiple events from the same browser session together in analytics.
+function getSessionId() {
+  const key = 'mixtape_session_id';
+  let id = sessionStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem(key, id);
+  }
+  return id;
+}
+
+export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, user }) {
   const [tracksA,   setTracksA]   = useState(tape.sideA);
   const [tracksB,   setTracksB]   = useState(tape.sideB);
   const [enriched,  setEnriched]  = useState(false);
@@ -13,6 +26,21 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard, setShowJCard] = useState(false);
   const [toast,     setToast]     = useState(null);
+
+  // ── Analytics: fire tape_opened on mount ─────────────────────────────────
+  useEffect(() => {
+    if (!tape.shareId) return; // hash-based shares don't have a DB id yet
+    const sessionId = getSessionId();
+    getTapeId(tape.shareId).then(tapeId => {
+      if (!tapeId) return;
+      logEvent({
+        tapeId,
+        eventType: 'tape_opened',
+        sessionId,
+        viewerId: user?.id || null,
+      });
+    });
+  }, []); // eslint-disable-line
 
   // ── Advance: kept in a ref so the YouTube onEnded callback always sees fresh state ──
   const advanceRef = useRef(() => {});
@@ -29,6 +57,12 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
         setPlaying(false);
         setPlayingIndex(0);
         showMsg('🎵 End of tape');
+        // Analytics: tape_completed
+        if (tape.shareId) {
+          getTapeId(tape.shareId).then(tapeId => {
+            if (tapeId) logEvent({ tapeId, eventType: 'tape_completed', sessionId: getSessionId(), viewerId: user?.id || null });
+          });
+        }
       }
     };
   });
@@ -36,7 +70,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
   const yt = useYouTube({
     elementId: 'yt-player-recipient',
     onEnded: () => advanceRef.current(),
-    onError: () => { showMsg('Skipping — this track can’t play here'); advanceRef.current(); },
+    onError: () => { showMsg("Skipping — this track can't play here"); advanceRef.current(); },
   });
 
   // Tracks the currently-loaded video so we only (re)load on an actual track change —
@@ -93,6 +127,12 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved }) {
       setPlayingIndex(0);
       setPaused(false);
       setPlaying(true);
+      // Analytics: tape_played (first press of play)
+      if (tape.shareId) {
+        getTapeId(tape.shareId).then(tapeId => {
+          if (tapeId) logEvent({ tapeId, eventType: 'tape_played', sessionId: getSessionId(), viewerId: user?.id || null });
+        });
+      }
     } else if (paused) {
       yt.resume();
       setPaused(false);

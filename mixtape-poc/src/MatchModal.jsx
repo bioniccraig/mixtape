@@ -46,7 +46,7 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
 
   function handlePaste() {
     const id = parseYouTubeId(pasteVal);
-    if (!id) { setPasteErr('That doesn’t look like a YouTube link or video id.'); return; }
+    if (!id) { setPasteErr("That doesn't look like a YouTube link or video id."); return; }
     setPasteErr('');
     choose(id, 'Pasted link', '');
   }
@@ -129,7 +129,7 @@ export default function MatchModal({ track, side, onConfirm, onClose }) {
             {!configured && (
               <div className="mm-paste">
                 <p className="mm-hint">
-                  YouTube search isn’t switched on yet. Paste the correct YouTube link instead:
+                  YouTube search isn't switched on yet. Paste the correct YouTube link instead:
                 </p>
                 <div className="mm-searchrow">
                   <input

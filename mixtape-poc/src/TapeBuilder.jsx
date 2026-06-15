@@ -7,6 +7,7 @@ import JCard from './JCard';
 import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
 import { buildShareUrl } from './share';
+import { saveTape } from './db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function msToMinutes(ms) {
@@ -92,7 +93,7 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck }
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function TapeBuilder({ onBack }) {
+export default function TapeBuilder({ onBack, user, onSignInRequest }) {
   const [skin,         setSkin]         = useState(DEFAULT_SKIN);
   const [tapeName,     setTapeName]     = useState('');
   const [note,         setNote]         = useState('');
@@ -132,7 +133,7 @@ export default function TapeBuilder({ onBack }) {
   const yt = useYouTube({
     elementId: 'yt-player-builder',
     onEnded: () => advanceRef.current(),
-    onError: () => { showToast('Skipping — this track can’t play here'); advanceRef.current(); },
+    onError: () => { showToast("Skipping — this track can't play here"); advanceRef.current(); },
   });
 
   // Only (re)load on an actual track change — not on pause/resume or match updates.
@@ -281,17 +282,48 @@ export default function TapeBuilder({ onBack }) {
     else              setSideB(arr);
   }
 
+  const [sharing, setSharing] = useState(false);
+
   async function handleShare() {
     if (needsAttention > 0) {
       const ok = window.confirm(
-        `${needsAttention} track${needsAttention !== 1 ? 's' : ''} ${needsAttention !== 1 ? 'don’t' : 'doesn’t'} have a playable match yet and won’t play for the recipient. Tap the ! badge to fix, or share anyway?`
+        `${needsAttention} track${needsAttention !== 1 ? 's' : ''} ${needsAttention !== 1 ? "don't" : "doesn't"} have a playable match yet and won't play for the recipient. Tap the ! badge to fix, or share anyway?`
       );
       if (!ok) return;
     }
+
+    setSharing(true);
+
+    // ── If signed in: save to DB and generate a short /t/SHAREID link ──────
+    if (user) {
+      const { shareId, error } = await saveTape({
+        tapeName, skin, note, sideA, sideB,
+        creatorId: user.id,
+      });
+
+      setSharing(false);
+
+      if (error) {
+        showToast(`Couldn't save tape: ${error}`);
+        return;
+      }
+
+      const url = `${window.location.origin}/t/${shareId}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('🔗 Short link copied! Tape saved to your library.');
+      } catch {
+        window.prompt('Copy this link:', url);
+      }
+      return;
+    }
+
+    // ── Not signed in: fall back to hash-encoded URL ──────────────────────
+    setSharing(false);
     const url = buildShareUrl({ tapeName, theme: skin, sideA, sideB, note });
     try {
       await navigator.clipboard.writeText(url);
-      showToast('🔗 Link copied to clipboard!');
+      showToast('🔗 Link copied! Sign in to save tapes and get short links.');
     } catch {
       window.prompt('Copy this link:', url);
     }
@@ -314,9 +346,16 @@ export default function TapeBuilder({ onBack }) {
           <span className="logo-text">MixTape</span>
         </div>
         <div className="header-actions">
+          {user ? (
+            <span className="auth-status-small">{user.email}</span>
+          ) : (
+            <button className="btn-auth-link" onClick={onSignInRequest} title="Sign in to save tapes">
+              Sign in
+            </button>
+          )}
           {hasTracks && (
-            <button className="share-btn" onClick={handleShare} title="Share this tape">
-              Share Tape 🔗
+            <button className="share-btn" onClick={handleShare} disabled={sharing} title="Share this tape">
+              {sharing ? 'Saving…' : (user ? 'Save & Share 🔗' : 'Share Tape 🔗')}
             </button>
           )}
           <button className="logout-btn" onClick={onBack}>← Back</button>
