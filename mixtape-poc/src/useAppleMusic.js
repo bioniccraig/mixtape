@@ -143,29 +143,27 @@ export function useAppleMusic({ onEnded, onError } = {}) {
           term: `${title} ${artist}`,
           media: 'music',
           entity: 'song',
-          limit: 10,
+          limit: 15,
         });
         const res     = await fetch(`/api/itunes-search?${params}`);
         const data    = await res.json();
         const results = data.results || [];
         const lc      = s => (s || '').toLowerCase();
 
-        // Score each result — prefer studio version over live/remix, prefer
-        // closer title matches. Deezer titles sometimes differ slightly from
-        // iTunes (e.g. "Killing in the Name of" vs "Killing in the Name"),
-        // so we use contains-matching rather than strict equality.
+        // Score each result — prefer studio version over live/remix/tribute.
+        // Artist MUST match (wrong artist = -99 / disqualified) so tribute bands
+        // like "Rage Against Power Machines" can never beat the real artist.
         function scoreResult(r) {
           const tn = lc(r.trackName);
           const an = lc(r.artistName);
           const t  = lc(title);
           const a  = lc(artist);
-          let score = 0;
 
-          // Artist similarity
-          if (an === a)               score += 10;
-          else if (an.includes(a) || a.includes(an)) score += 5;
+          // Artist must match — if neither string contains the other, disqualify
+          const artistScore = an === a ? 10 : (an.includes(a) || a.includes(an)) ? 5 : -99;
+          if (artistScore < 0) return -99;
 
-          // Title similarity
+          let score = artistScore;
           if (tn === t)               score += 10;
           else if (tn.includes(t) || t.includes(tn)) score += 5;
 

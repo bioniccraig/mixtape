@@ -313,8 +313,10 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       function score(r) {
         const tn = lc(r.trackName), an = lc(r.artistName);
         const t  = lc(track.title), a  = lc(track.artist);
-        let s = 0;
-        if (an === a)                        s += 10; else if (an.includes(a) || a.includes(an)) s += 5;
+        // Artist must match — wrong artist = disqualified
+        const artistScore = an === a ? 10 : (an.includes(a) || a.includes(an)) ? 5 : -99;
+        if (artistScore < 0) return -99;
+        let s = artistScore;
         if (tn === t)                        s += 10; else if (tn.includes(t) || t.includes(tn)) s += 5;
         if (/\(live[\s,)]|\blive\b at/i.test(r.trackName))              s -= 8;
         if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.trackName)) s -= 4;
