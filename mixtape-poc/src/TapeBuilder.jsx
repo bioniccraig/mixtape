@@ -134,6 +134,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [reviewing,      setReviewing]      = useState(null); // { side, id } — YouTube review
   const [reviewingApple, setReviewingApple] = useState(null); // { side, id } — Apple Music review
   const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
+  const [attentionPanel, setAttentionPanel] = useState(null); // null | { tracks, onProceed }
 
   // DB state — populated when tape has been saved
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
@@ -378,8 +379,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     : null;
 
   // Count tracks that still need attention before a clean send.
-  const needsAttention = [...sideA, ...sideB].filter(
-    t => t.ytStatus === 'none' || t.ytStatus === 'error'
+  // Only flag mismatches for the currently active playback engine.
+  const needsAttention = [...sideA, ...sideB].filter(t =>
+    engine === 'youtube'
+      ? (t.ytStatus === 'none' || t.ytStatus === 'error')
+      : (t.appleStatus === 'none' || t.appleStatus === 'error')
   ).length;
 
   function removeTrack(side, index) {
@@ -421,9 +425,20 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   // ── Shared publish helper — saves tape and returns the share URL ──────────
   async function publishTape() {
     if (needsAttention > 0) {
-      const ok = window.confirm(
-        `${needsAttention} track${needsAttention !== 1 ? 's' : ''} ${needsAttention !== 1 ? "don't" : "doesn't"} have a playable match yet. Tap the ! badge to fix, or share anyway?`
+      // Build list of problem tracks with their side label
+      const problemTracks = [
+        ...sideA.map(t => ({ ...t, side: 'A' })),
+        ...sideB.map(t => ({ ...t, side: 'B' })),
+      ].filter(t =>
+        engine === 'youtube'
+          ? (t.ytStatus === 'none' || t.ytStatus === 'error')
+          : (t.appleStatus === 'none' || t.appleStatus === 'error')
       );
+      // Show panel and wait for user decision
+      const ok = await new Promise(resolve => {
+        setAttentionPanel({ tracks: problemTracks, onProceed: resolve });
+      });
+      setAttentionPanel(null);
       if (!ok) return null;
     }
     if (!user) {
@@ -729,6 +744,40 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             setReviewingApple(null);
           }}
         />
+      )}
+
+      {attentionPanel && (
+        <div className="attention-overlay">
+          <div className="attention-modal">
+            <h3>⚠️ Unmatched tracks</h3>
+            <p>These tracks don't have a playable {engine === 'youtube' ? 'YouTube' : 'Apple Music'} match. Tap a track to jump to it and fix the badge, or share anyway.</p>
+            <ul className="attention-track-list">
+              {attentionPanel.tracks.map(t => (
+                <li key={t.id} className="attention-track-item"
+                  onClick={() => {
+                    setActiveSide(t.side);
+                    attentionPanel.onProceed(false);
+                  }}
+                >
+                  <span className="attention-side-badge">Side {t.side}</span>
+                  <span className="attention-track-name">{t.title}</span>
+                  <span className="attention-track-artist">{t.artist}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="attention-actions">
+              <button className="attention-fix-btn" onClick={() => {
+                setActiveSide(attentionPanel.tracks[0].side);
+                attentionPanel.onProceed(false);
+              }}>
+                Go fix
+              </button>
+              <button className="attention-share-btn" onClick={() => attentionPanel.onProceed(true)}>
+                Share anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && <div className="toast">{toast}</div>}

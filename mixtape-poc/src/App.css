@@ -574,6 +574,58 @@ body {
 .add-btn:disabled { opacity: 0.3; cursor: default; }
 .add-btn-b { background: #3a86ff; }
 
+/* ── Attention panel (unmatched tracks before share) ───────────────── */
+.attention-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300;
+}
+.attention-modal {
+  background: #1a1a2e;
+  border: 1px solid #e85d75;
+  border-radius: 14px;
+  padding: 24px;
+  width: min(420px, 90vw);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.attention-modal h3 { margin: 0; font-size: 16px; color: #e85d75; }
+.attention-modal p  { margin: 0; font-size: 13px; color: #aaa; line-height: 1.5; }
+.attention-track-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.attention-track-item {
+  display: flex; align-items: center; gap: 10px;
+  background: #12122a; border-radius: 8px;
+  padding: 10px 12px; cursor: pointer;
+  transition: background 0.15s;
+}
+.attention-track-item:hover { background: #1f1f3a; }
+.attention-side-badge {
+  font-size: 10px; font-weight: 700;
+  background: #e85d75; color: #fff;
+  border-radius: 4px; padding: 2px 6px;
+  flex-shrink: 0;
+}
+.attention-track-name  { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+.attention-track-artist { font-size: 12px; color: #888; }
+.attention-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+}
+.attention-fix-btn {
+  background: transparent; border: 1px solid #555;
+  color: #ccc; border-radius: 8px; padding: 8px 18px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.attention-fix-btn:hover { border-color: #888; color: #fff; }
+.attention-share-btn {
+  background: #e85d75; border: none; color: #fff;
+  border-radius: 8px; padding: 8px 18px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.attention-share-btn:hover { background: #d44d65; }
+
 /* ── Toast ──────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
