@@ -179,6 +179,10 @@ export function useAppleMusic({ onEnded, onError } = {}) {
         itunesIdCache.set(cacheKey, catalogId);
       }
 
+      // MusicKit throws "play() called without stop/pause" if the internal state is
+      // PLAY_END (track just finished naturally). Stop first to ensure a clean state
+      // before queuing and playing the next track.
+      try { await music.stop(); } catch { /* ignore if already stopped */ }
       await music.setQueue({ songs: [catalogId] });
       await music.play();
     } catch (err) {
@@ -187,7 +191,17 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   }, []);
 
   const pause  = useCallback(() => { try { MusicKit.getInstance().pause(); } catch { /* ignore */ } }, []);
-  const resume = useCallback(() => { try { MusicKit.getInstance().play();  } catch { /* ignore */ } }, []);
+  const resume = useCallback(async () => {
+    try {
+      const music = MusicKit.getInstance();
+      // Only resume if MusicKit is actually paused — avoids the "play() called
+      // without stop/pause" error that fires when the queue is in PLAY_END state.
+      const PAUSED = MusicKit?.PlaybackStates?.paused ?? 2;
+      if (music.playbackState === PAUSED) {
+        await music.play();
+      }
+    } catch { /* ignore */ }
+  }, []);
   const stop   = useCallback(() => { try { MusicKit.getInstance().stop();  } catch { /* ignore */ } }, []);
 
   // ready = fully set up and able to play

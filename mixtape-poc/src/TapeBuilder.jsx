@@ -838,10 +838,22 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         <div className="attention-overlay">
           <div className="attention-modal">
             <h3>⚠️ Unmatched tracks</h3>
+            {/* Primary action at the top so it's always reachable */}
+            <div className="attention-actions attention-actions-top">
+              <button className="attention-share-btn" onClick={() => attentionPanel.onProceed(true)}>
+                Share anyway
+              </button>
+              <button className="attention-fix-btn" onClick={() => {
+                setActiveSide(attentionPanel.tracks[0].side);
+                attentionPanel.onProceed(false);
+              }}>
+                Go fix
+              </button>
+            </div>
             {attentionPanel.quotaExceeded ? (
               <p>YouTube's daily matching limit has been reached — it resets at midnight PT. Tracks already matched will still play fine. You can share now and the matched tracks will work, or come back tomorrow to fix the rest.</p>
             ) : (
-              <p>These tracks don't have a playable {engine === 'youtube' ? 'YouTube' : 'Apple Music'} match. Tap a track to jump to it and fix the badge, or share anyway.</p>
+              <p>These tracks don't have a playable {engine === 'youtube' ? 'YouTube' : 'Apple Music'} match. Tap a track below to jump to it and fix the badge.</p>
             )}
             <ul className="attention-track-list">
               {attentionPanel.tracks.map(t => (
@@ -857,17 +869,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                 </li>
               ))}
             </ul>
-            <div className="attention-actions">
-              <button className="attention-fix-btn" onClick={() => {
-                setActiveSide(attentionPanel.tracks[0].side);
-                attentionPanel.onProceed(false);
-              }}>
-                Go fix
-              </button>
-              <button className="attention-share-btn" onClick={() => attentionPanel.onProceed(true)}>
-                Share anyway
-              </button>
-            </div>
           </div>
         </div>
       )}
