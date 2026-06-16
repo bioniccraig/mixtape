@@ -290,9 +290,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {user && (
             <span className="auth-status-small">{user.email}</span>
           )}
-          <button className="share-btn player-make-own-desktop" onClick={onMakeOwn}>
-            Make Your Own ✦
-          </button>
+          {tape.allowForward && (
+            <button className="share-btn player-make-own-desktop" onClick={onMakeOwn}>
+              Make Your Own ✦
+            </button>
+          )}
         </div>
       </header>
 

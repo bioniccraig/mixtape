@@ -79,7 +79,7 @@ function rowToTrack(r) {
 // Creates a new tape (if no id) or updates an existing one (if id provided).
 // status: 'draft' | 'published'
 // Returns { id, shareId, error }
-export async function upsertTape({ id, tapeName, skin, note, sideA, sideB, creatorId, status = 'draft', coverImageUrl, coverColor }) {
+export async function upsertTape({ id, tapeName, skin, note, sideA, sideB, creatorId, status = 'draft', coverImageUrl, coverColor, allowForward = false }) {
   if (!supabase) return { id: null, shareId: null, error: 'Supabase not configured' };
 
   const payload = {
@@ -91,6 +91,7 @@ export async function upsertTape({ id, tapeName, skin, note, sideA, sideB, creat
     status,
     cover_image_url: coverImageUrl  || null,
     cover_color:     coverColor     || null,
+    allow_forward:   !!allowForward,
   };
 
   if (id) {
@@ -225,6 +226,7 @@ function _rowToTape(data) {
     createdAt:     data.created_at || null,
     coverImageUrl: data.cover_image_url || null,
     coverColor:    data.cover_color     || null,
+    allowForward:  !!data.allow_forward,
     sideA:         (data.tracks_a || []).map(rowToTrack),
     sideB:         (data.tracks_b || []).map(rowToTrack),
   };

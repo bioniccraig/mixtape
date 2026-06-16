@@ -1882,3 +1882,267 @@ body {
   color: #f0a0b0;
   line-height: 1;
 }
+
+/* ── Home layout (signed-in splash) ────────────────────────────────────── */
+.splash-home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-layout {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 20px 40px;
+}
+
+.home-create-pane {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 30px 20px 10px;
+  border-right: 1px solid rgba(255,255,255,0.07);
+}
+
+.home-create-pane .splash-hero {
+  width: 200px;
+  margin-bottom: 16px;
+}
+
+.home-create-pane .logo {
+  margin-bottom: 6px;
+}
+
+.home-create-pane .tagline {
+  margin-bottom: 20px;
+}
+
+.home-create-pane .btn-start {
+  width: 100%;
+  max-width: 220px;
+  margin-bottom: 12px;
+}
+
+.home-create-pane .disclaimer {
+  font-size: 11px;
+  opacity: 0.45;
+  margin-bottom: 16px;
+}
+
+.home-library-pane {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 10px 10px 28px;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
+}
+
+/* Mobile: stack vertically, library below */
+@media (max-width: 680px) {
+  .home-layout {
+    flex-direction: column;
+    padding: 16px 14px 40px;
+    gap: 24px;
+  }
+
+  .home-create-pane {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 10px 10px 24px;
+  }
+
+  .home-create-pane .splash-hero {
+    width: 140px;
+  }
+
+  .home-library-pane {
+    padding: 0;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+/* ── InlineLibrary ───────────────────────────────────────────────────────── */
+.inline-library {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.il-heading {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 14px;
+}
+
+.il-loading {
+  color: rgba(255,255,255,0.35);
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+.il-empty {
+  color: rgba(255,255,255,0.35);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.il-section {
+  margin-bottom: 20px;
+}
+
+.il-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.il-count {
+  background: rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+}
+
+.il-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.il-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.il-thumb {
+  width: 44px;
+  height: 30px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+
+.il-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.il-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.08);
+}
+
+.il-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.il-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.il-meta {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.il-date {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+}
+
+.il-badge {
+  background: rgba(255,200,60,0.15);
+  border: 1px solid rgba(255,200,60,0.3);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffc83c;
+  letter-spacing: 0.04em;
+}
+
+.il-likes {
+  font-size: 11px;
+  color: rgba(232,93,117,0.8);
+}
+
+/* ── Forward toggle (TapeBuilder) ────────────────────────────────────────── */
+.forward-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.forward-toggle input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: #e85d75;
+  cursor: pointer;
+}
+
+.forward-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+}
+
+.forward-toggle-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.4);
+}

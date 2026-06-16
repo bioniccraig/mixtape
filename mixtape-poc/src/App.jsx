@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import TapeBuilder  from './TapeBuilder';
-import TapePlayer   from './TapePlayer';
-import CassetteSVG  from './Cassette';
-import AuthModal    from './AuthModal';
-import MyLibrary    from './MyLibrary';
-import Legal        from './Legal';
+import TapeBuilder    from './TapeBuilder';
+import TapePlayer     from './TapePlayer';
+import CassetteSVG   from './Cassette';
+import AuthModal     from './AuthModal';
+import MyLibrary     from './MyLibrary';
+import InlineLibrary from './InlineLibrary';
+import Legal         from './Legal';
 import { getSharedTape } from './share';
 import { loadTapeByShareId, loadTapeById, recordTapeView } from './db';
 import { useAuth } from './useAuth';
@@ -135,19 +136,68 @@ export default function App() {
     );
   }
 
-  // ── Splash ────────────────────────────────────────────────────────────────
-  return (
-    <div className="splash">
-      <div className="splash-auth-bar">
-        {user && (
+  // ── Splash — signed in ───────────────────────────────────────────────────
+  if (user) {
+    return (
+      <div className="splash splash-home">
+        {/* Top bar */}
+        <div className="splash-auth-bar">
           <span className="auth-status">
-            <button className="btn-auth-link" onClick={() => setShowLibrary(true)}>📼 Library</button>
             <span className="auth-email">{user.email}</span>
             <button className="btn-auth-link" onClick={signOut}>Sign out</button>
           </span>
-        )}
-      </div>
+        </div>
 
+        {/* Two-pane home layout */}
+        <div className="home-layout">
+
+          {/* ── Left / top: Create CTA ── */}
+          <div className="home-create-pane">
+            <div className="splash-hero">
+              <CassetteSVG skin="rainbow" title="MIXTAPE" spinning={false} />
+            </div>
+            <div className="logo">
+              <span className="logo-icon">◼</span>
+              <span className="logo-text">MixTape</span>
+            </div>
+            <p className="tagline">Say It With Music</p>
+            <button className="btn-start" onClick={() => { setEditTape(null); setView('builder'); }}>
+              + Create a Tape
+            </button>
+            <p className="disclaimer">Create · Personalise · Share</p>
+            <div className="splash-platforms">
+              <span className="splash-platform-label">Plays via</span>
+              <span className="splash-platform-badge yt">▶ YouTube</span>
+              <span className="splash-platform-badge am">♫ Apple Music</span>
+            </div>
+          </div>
+
+          {/* ── Right / bottom: Library ── */}
+          <div className="home-library-pane">
+            <InlineLibrary
+              user={user}
+              onPlay={t => { openTapeInPlayer(t); }}
+              onEdit={t => { openTapeInBuilder(t); }}
+            />
+          </div>
+
+        </div>
+
+        <footer className="splash-footer">
+          <a href="/legal#privacy">Privacy Policy</a>
+          <span className="splash-footer-sep">·</span>
+          <a href="/legal#terms">Terms of Service</a>
+        </footer>
+
+        {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
+        {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
+      </div>
+    );
+  }
+
+  // ── Splash — signed out ───────────────────────────────────────────────────
+  return (
+    <div className="splash">
       <div className="splash-hero">
         <CassetteSVG skin="rainbow" title="MIXTAPE" spinning={false} />
       </div>
@@ -156,36 +206,25 @@ export default function App() {
         <span className="logo-text">MixTape</span>
       </div>
       <p className="tagline">Say It With Music</p>
-      {user ? (
-        <button className="btn-start" onClick={() => { setEditTape(null); setView('builder'); }}>
-          Make a Tape
-        </button>
-      ) : (
-        <>
-          <button className="btn-start" onClick={() => setShowAuth(true)}>
-            Sign in / Sign up
-          </button>
-          <p className="splash-email-hint">Sign in with just your email address — no password needed</p>
-        </>
-      )}
+      <button className="btn-start" onClick={() => setShowAuth(true)}>
+        Sign in / Sign up
+      </button>
+      <p className="splash-email-hint">Sign in with just your email address — no password needed</p>
       <p className="disclaimer">Create, Personalise, Share</p>
 
-      {/* Platform badges */}
       <div className="splash-platforms">
         <span className="splash-platform-label">Plays via</span>
         <span className="splash-platform-badge yt">▶ YouTube</span>
         <span className="splash-platform-badge am">♫ Apple Music</span>
       </div>
 
-      {/* Footer with privacy policy link */}
       <footer className="splash-footer">
         <a href="/legal#privacy">Privacy Policy</a>
         <span className="splash-footer-sep">·</span>
         <a href="/legal#terms">Terms of Service</a>
       </footer>
 
-      {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
-      {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

@@ -141,9 +141,12 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [quotaExceeded,  setQuotaExceeded]  = useState(false); // true when YouTube daily limit hit
 
   // Cover state
-  const [coverImageUrl, setCoverImageUrl] = useState(initialTape?.coverImageUrl || null);
-  const [coverColor,    setCoverColor]    = useState(initialTape?.coverColor    || null);
+  const [coverImageUrl,  setCoverImageUrl]  = useState(initialTape?.coverImageUrl || null);
+  const [coverColor,     setCoverColor]     = useState(initialTape?.coverColor    || null);
   const [coverUploading, setCoverUploading] = useState(false);
+
+  // Sharing privacy
+  const [allowForward, setAllowForward] = useState(initialTape?.allowForward || false);
 
   // DB state — populated when tape has been saved
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
@@ -463,7 +466,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setSaveLabel('Saving…');
     const { id, shareId: sid, error } = await upsertTape({
       id: dbTapeId, tapeName, skin, note, sideA, sideB,
-      creatorId: user.id, status: 'draft', coverImageUrl, coverColor,
+      creatorId: user.id, status: 'draft', coverImageUrl, coverColor, allowForward,
     });
     if (error) {
       setSaveLabel('Error');
@@ -504,7 +507,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     }
     const { id, shareId: sid, error } = await upsertTape({
       id: dbTapeId, tapeName, skin, note, sideA, sideB,
-      creatorId: user.id, status: 'published', coverImageUrl, coverColor,
+      creatorId: user.id, status: 'published', coverImageUrl, coverColor, allowForward,
     });
     if (error) { showToast(`Couldn't save tape: ${error}`); return null; }
     setDbTapeId(id);
@@ -700,6 +703,23 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
               <TimeBar usedMs={sideAMs} label="Side A" />
               <TimeBar usedMs={sideBMs} label="Side B" />
+
+              {/* Sharing privacy toggle */}
+              <label className="forward-toggle">
+                <input
+                  type="checkbox"
+                  checked={allowForward}
+                  onChange={e => setAllowForward(e.target.checked)}
+                />
+                <span className="forward-toggle-label">
+                  Allow recipients to share this tape
+                  <span className="forward-toggle-hint">
+                    {allowForward
+                      ? 'On — anyone with the link can forward and share it'
+                      : 'Off — private, recipient cannot forward'}
+                  </span>
+                </span>
+              </label>
             </>
           )}
 
