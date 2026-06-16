@@ -353,12 +353,14 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
 
           {/* Reaction — toggle for recipients, read-only count for creator */}
           {isCreator ? (
-            creatorLikes > 0 && (
-              <div className="creator-likes">
-                <span>❤️</span>
-                <span className="creator-likes-count">{creatorLikes} {creatorLikes === 1 ? 'person loved' : 'people loved'} this tape</span>
-              </div>
-            )
+            <div className="creator-likes">
+              <span>❤️</span>
+              <span className="creator-likes-count">
+                {creatorLikes === 0
+                  ? 'No likes yet'
+                  : `${creatorLikes} ${creatorLikes === 1 ? 'person loved' : 'people loved'} this tape`}
+              </span>
+            </div>
           ) : (
             <ReactionButton
               tapeId={tape.dbId}

@@ -150,6 +150,16 @@ body {
   top: 16px;
   right: 20px;
 }
+/* On the signed-in home page, auth bar flows normally so the hero doesn't overlap it */
+.splash-home .splash-auth-bar {
+  position: relative;
+  top: auto;
+  right: auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px 0;
+  width: 100%;
+}
 .auth-status {
   display: flex;
   align-items: center;
@@ -2111,17 +2121,19 @@ body {
 
 /* ── Player footer (persistent nav bar) ─────────────────────────────────── */
 .player-footer {
-  position: sticky;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: rgba(13, 13, 26, 0.96);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  /* padding-bottom includes safe-area for notch/home-indicator on iOS */
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(13, 13, 26, 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255,255,255,0.1);
   z-index: 50;
 }
 
@@ -2197,9 +2209,9 @@ body {
   color: rgba(255,255,255,0.45);
 }
 
-/* Give the player enough bottom padding so footer doesn't overlap content */
+/* Give the player enough bottom padding so fixed footer doesn't overlap content */
 .player-body {
-  padding-bottom: 72px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Forward toggle (TapeBuilder) ────────────────────────────────────────── */
