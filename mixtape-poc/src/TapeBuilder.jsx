@@ -137,7 +137,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [reviewing,      setReviewing]      = useState(null); // { side, id } — YouTube review
   const [reviewingApple, setReviewingApple] = useState(null); // { side, id } — Apple Music review
   const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
-  const [attentionPanel, setAttentionPanel] = useState(null); // null | { tracks, onProceed }
+  const [attentionPanel, setAttentionPanel] = useState(null); // null | { tracks, onProceed, quotaExceeded }
+  const [quotaExceeded,  setQuotaExceeded]  = useState(false); // true when YouTube daily limit hit
 
   // Cover state
   const [coverImageUrl, setCoverImageUrl] = useState(initialTape?.coverImageUrl || null);
@@ -318,6 +319,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   async function resolveMatch(track, side) {
     try {
       const m = await matchTrack(track);
+      if (m.quotaExceeded) {
+        setQuotaExceeded(true);
+        patchTrack(side, track.id, { ytStatus: 'none' });
+        return;
+      }
       patchTrack(side, track.id, {
         ytId: m.youtubeId || null,
         ytTitle: m.title || '',
@@ -486,7 +492,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       );
       // Show panel and wait for user decision
       const ok = await new Promise(resolve => {
-        setAttentionPanel({ tracks: problemTracks, onProceed: resolve });
+        setAttentionPanel({ tracks: problemTracks, onProceed: resolve, quotaExceeded });
       });
       setAttentionPanel(null);
       if (!ok) return null;
@@ -807,7 +813,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         <div className="attention-overlay">
           <div className="attention-modal">
             <h3>⚠️ Unmatched tracks</h3>
-            <p>These tracks don't have a playable {engine === 'youtube' ? 'YouTube' : 'Apple Music'} match. Tap a track to jump to it and fix the badge, or share anyway.</p>
+            {attentionPanel.quotaExceeded ? (
+              <p>YouTube's daily matching limit has been reached — it resets at midnight PT. Tracks already matched will still play fine. You can share now and the matched tracks will work, or come back tomorrow to fix the rest.</p>
+            ) : (
+              <p>These tracks don't have a playable {engine === 'youtube' ? 'YouTube' : 'Apple Music'} match. Tap a track to jump to it and fix the badge, or share anyway.</p>
+            )}
             <ul className="attention-track-list">
               {attentionPanel.tracks.map(t => (
                 <li key={t.id} className="attention-track-item"

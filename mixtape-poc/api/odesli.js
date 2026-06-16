@@ -81,7 +81,18 @@ async function searchYouTube(query, wantLive) {
     maxResults: '10', q: query, key,
   });
   const r = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
-  if (!r.ok) return null;
+  if (!r.ok) {
+    if (r.status === 403) {
+      let body = {};
+      try { body = await r.json(); } catch { /* ignore */ }
+      const reason = body?.error?.errors?.[0]?.reason;
+      if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+        console.error('[odesli] YouTube quota exceeded during fallback search');
+        return { quotaExceeded: true };
+      }
+    }
+    return null;
+  }
   const items = ((await r.json()).items || []).filter(it => it.id?.videoId);
   if (!items.length) return null;
   const ranked = items
@@ -121,6 +132,11 @@ export default async function handler(req, res) {
   // 2) Ranked YouTube search fallback (prefers studio, avoids live unless wanted).
   if (!result) {
     try { result = await searchYouTube(`${artist} ${title}`.trim(), wantLive); } catch { /* none */ }
+  }
+
+  // Quota exhaustion in the fallback — tell the client so it can surface a clear message
+  if (result?.quotaExceeded) {
+    return res.json({ youtubeId: null, via: null, quotaExceeded: true });
   }
 
   if (!result) return res.json({ youtubeId: null, via: null });

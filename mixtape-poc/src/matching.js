@@ -5,6 +5,7 @@
 
 // Resolve the best YouTube match for a track.
 // Returns { youtubeId, youtubeUrl, title, artist, thumbnail } — youtubeId may be null.
+// Returns match result. May include quotaExceeded:true if YouTube daily limit hit.
 export async function matchTrack(track) {
   const params = new URLSearchParams();
   if (track.uri) params.set('url', track.uri);
@@ -14,7 +15,7 @@ export async function matchTrack(track) {
   if (track.artist) params.set('artist', track.artist);
   const r = await fetch(`/api/odesli?${params}`);
   if (!r.ok) throw new Error(`match failed (${r.status})`);
-  return r.json();
+  return r.json(); // caller should check .quotaExceeded
 }
 
 // Search YouTube for alternative matches (used by the swap UI).
