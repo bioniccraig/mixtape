@@ -4,7 +4,8 @@
 //   0. Supabase cache      — instant, zero cost. Hits on any track matched before.
 //   1. Deezer → ISRC → MusicBrainz — free, ISRC-based (replaces retired Odesli API).
 //   2. Invidious           — free open-source YouTube search, no quota.
-//   3. YouTube Data API    — paid last resort (100 units). Only if 1 & 2 both fail.
+//   2b. Piped              — free open-source YouTube search (different backend), no quota.
+//   3. YouTube Data API    — paid last resort (100 units). Only if 1, 2 & 2b all fail.
 //
 // NOTE: Odesli (song.link v1-alpha.1) was retired July 31 2026.
 //       We now get the ISRC directly from the Deezer API (free, no auth) and look up
@@ -235,6 +236,52 @@ async function searchInvidious(query, wantLive) {
   return null;
 }
 
+// ── Piped (free fallback) ─────────────────────────────────────────────────────
+// Piped is another open-source YouTube frontend with a public API, independent
+// of the Invidious network. Different hosting/backend, so when Invidious instances
+// are rate-limited or down, Piped often still works — no API key, no quota cost.
+// Instances: https://github.com/TeamPiped/Piped/wiki/Instances
+const PIPED_INSTANCES = [
+  'pipedapi.kavin.rocks',
+  'pipedapi.adminforge.de',
+  'pipedapi.reallyaweso.me',
+  'api.piped.yt',
+  'pipedapi.leptons.xyz',
+];
+
+async function searchPiped(query, wantLive) {
+  if (!query.trim()) return null;
+  for (const host of PIPED_INSTANCES) {
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 3000);
+      const params = new URLSearchParams({ q: query, filter: 'music_songs' });
+      const r = await fetch(`https://${host}/search?${params}`, { signal: controller.signal });
+      clearTimeout(tid);
+      if (!r.ok) continue;
+      const data = await r.json();
+      // Piped returns { items: [{ url:"/watch?v=ID", title, uploaderName, thumbnail }] }
+      const items = Array.isArray(data.items) ? data.items : [];
+      const ranked = items
+        .map(it => ({ it, id: extractYouTubeId(it.url) }))
+        .filter(x => x.id)
+        .map((x, idx) => ({ ...x, score: scoreResult(x.it.title, x.it.uploaderName, idx, wantLive) }))
+        .sort((a, b) => b.score - a.score);
+      const best = ranked[0];
+      if (!best) continue;
+      return {
+        youtubeId:  best.id,
+        youtubeUrl: `https://www.youtube.com/watch?v=${best.id}`,
+        title:      best.it.title        || null,
+        artist:     best.it.uploaderName || null,
+        thumbnail:  best.it.thumbnail    || null,
+        via:        'piped',
+      };
+    } catch { continue; }
+  }
+  return null;
+}
+
 // ── YouTube Data API (paid, last resort) ──────────────────────────────────────
 async function searchYouTube(query, wantLive) {
   const key = process.env.YOUTUBE_API_KEY;
@@ -311,6 +358,13 @@ export default async function handler(req, res) {
   if (!result) {
     try {
       result = await searchInvidious(`${artist} ${title}`.trim(), wantLive);
+    } catch { /* fall through */ }
+  }
+
+  // 2b) Piped — free text search (independent backend), no quota cost
+  if (!result) {
+    try {
+      result = await searchPiped(`${artist} ${title}`.trim(), wantLive);
     } catch { /* fall through */ }
   }
 

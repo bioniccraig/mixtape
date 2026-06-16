@@ -14,9 +14,11 @@ create table if not exists profiles (
 
 alter table profiles enable row level security;
 
+drop policy if exists "Users can read own profile" on profiles;
 create policy "Users can read own profile"
   on profiles for select using (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on profiles;
 create policy "Users can update own profile"
   on profiles for update using (auth.uid() = id);
 
@@ -68,18 +70,22 @@ create table if not exists tapes (
 alter table tapes enable row level security;
 
 -- Anyone can read a published tape (needed for share links)
+drop policy if exists "Anyone can read published tapes" on tapes;
 create policy "Anyone can read published tapes"
   on tapes for select using (status = 'published');
 
 -- Creators can read their own tapes (including drafts)
+drop policy if exists "Creators can read own tapes" on tapes;
 create policy "Creators can read own tapes"
   on tapes for select using (auth.uid() = creator_id);
 
 -- Creators can insert
+drop policy if exists "Creators can insert tapes" on tapes;
 create policy "Creators can insert tapes"
   on tapes for insert with check (auth.uid() = creator_id);
 
 -- Creators can update their own tapes
+drop policy if exists "Creators can update own tapes" on tapes;
 create policy "Creators can update own tapes"
   on tapes for update using (auth.uid() = creator_id);
 
@@ -101,6 +107,7 @@ create table if not exists tape_recipients (
 alter table tape_recipients enable row level security;
 
 -- Creators can read recipients for their tapes
+drop policy if exists "Creators can read own tape recipients" on tape_recipients;
 create policy "Creators can read own tape recipients"
   on tape_recipients for select
   using (
@@ -110,10 +117,12 @@ create policy "Creators can read own tape recipients"
   );
 
 -- Anyone can insert a recipient row (anon users opening a tape)
+drop policy if exists "Anyone can insert tape recipients" on tape_recipients;
 create policy "Anyone can insert tape recipients"
   on tape_recipients for insert with check (true);
 
 -- Anyone can update a recipient row (to record opened_at / played_at)
+drop policy if exists "Anyone can update tape recipients" on tape_recipients;
 create policy "Anyone can update tape recipients"
   on tape_recipients for update using (true);
 
@@ -134,10 +143,12 @@ create table if not exists events (
 alter table events enable row level security;
 
 -- Anyone can insert events (anon listeners)
+drop policy if exists "Anyone can insert events" on events;
 create policy "Anyone can insert events"
   on events for insert with check (true);
 
 -- Creators can read events for their tapes
+drop policy if exists "Creators can read own tape events" on events;
 create policy "Creators can read own tape events"
   on events for select
   using (
@@ -158,10 +169,12 @@ begin
 end;
 $$;
 
+drop trigger if exists tapes_updated_at on tapes;
 create trigger tapes_updated_at
   before update on tapes
   for each row execute procedure set_updated_at();
 
+drop trigger if exists profiles_updated_at on profiles;
 create trigger profiles_updated_at
   before update on profiles
   for each row execute procedure set_updated_at();
