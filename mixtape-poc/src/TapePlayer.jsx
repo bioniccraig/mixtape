@@ -63,7 +63,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [playingSide,  setPlayingSide]  = useState('A');
   const [playingIndex, setPlayingIndex] = useState(0);
   const [showJCard,    setShowJCard]    = useState(true);   // sleeve visible by default
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const [toast,        setToast]        = useState(null);
   const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
   const [creatorLikes, setCreatorLikes] = useState(0); // like count shown to creator (read-only)
