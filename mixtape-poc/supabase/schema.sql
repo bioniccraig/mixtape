@@ -165,3 +165,168 @@ create trigger tapes_updated_at
 create trigger profiles_updated_at
   before update on profiles
   for each row execute procedure set_updated_at();
+
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- SOCIAL + V1 SCHEMA  (added June 2026)
+-- These objects are used by the deployed app (db.js, useNotifications.js) but
+-- were originally created ad-hoc in the SQL editor and never written back here.
+-- This whole section is IDEMPOTENT — safe to run (or re-run) in the Supabase
+-- SQL Editor to verify and complete your project's schema.
+-- ═════════════════════════════════════════════════════════════════════════════
+
+-- ── Missing columns on TAPES (cover photo, cover colour, forwarding) ──────────
+alter table tapes add column if not exists cover_image_url text;
+alter table tapes add column if not exists cover_color     text;
+alter table tapes add column if not exists allow_forward   boolean not null default false;
+
+
+-- ── REACTIONS (❤️ likes) ──────────────────────────────────────────────────────
+create table if not exists reactions (
+  id         uuid primary key default gen_random_uuid(),
+  tape_id    uuid not null references tapes (id) on delete cascade,
+  user_id    uuid not null references profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (tape_id, user_id)
+);
+
+alter table reactions enable row level security;
+
+drop policy if exists "Anyone can read reactions" on reactions;
+create policy "Anyone can read reactions"
+  on reactions for select using (true);
+
+drop policy if exists "Users can like as themselves" on reactions;
+create policy "Users can like as themselves"
+  on reactions for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can remove own like" on reactions;
+create policy "Users can remove own like"
+  on reactions for delete using (auth.uid() = user_id);
+
+
+-- ── COMMENTS ──────────────────────────────────────────────────────────────────
+create table if not exists comments (
+  id         uuid primary key default gen_random_uuid(),
+  tape_id    uuid not null references tapes (id) on delete cascade,
+  user_id    uuid not null references profiles (id) on delete cascade,
+  user_email text,
+  body       text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table comments enable row level security;
+
+drop policy if exists "Anyone can read comments" on comments;
+create policy "Anyone can read comments"
+  on comments for select using (true);
+
+drop policy if exists "Users can comment as themselves" on comments;
+create policy "Users can comment as themselves"
+  on comments for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete own comment" on comments;
+create policy "Users can delete own comment"
+  on comments for delete using (auth.uid() = user_id);
+
+
+-- ── NOTIFICATIONS (in-app bell — likes / comments / plays) ────────────────────
+create table if not exists notifications (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references profiles (id) on delete cascade,  -- recipient (tape creator)
+  type       text not null,                 -- 'like' | 'comment' | 'play'
+  tape_id    uuid references tapes (id) on delete cascade,
+  from_email text,                          -- actor's email (null if anonymous)
+  message    text,
+  read       boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table notifications enable row level security;
+
+drop policy if exists "Users read own notifications" on notifications;
+create policy "Users read own notifications"
+  on notifications for select using (auth.uid() = user_id);
+
+drop policy if exists "Users update own notifications" on notifications;
+create policy "Users update own notifications"
+  on notifications for update using (auth.uid() = user_id);
+
+-- Live delivery: notifications must be in the realtime publication
+-- (wrapped so re-running doesn't error if already added).
+do $$
+begin
+  alter publication supabase_realtime add table notifications;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
+
+
+-- ── NOTIFICATION TRIGGERS (security definer — bypass RLS to insert for creator) ─
+
+-- New like → notify the tape creator (skip self-likes)
+create or replace function notify_on_like()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_creator uuid; v_name text; v_from text;
+begin
+  select creator_id, tape_name into v_creator, v_name from tapes where id = new.tape_id;
+  if v_creator is null or v_creator = new.user_id then return new; end if;
+  select email into v_from from profiles where id = new.user_id;
+  insert into notifications (user_id, type, tape_id, from_email, message)
+  values (v_creator, 'like', new.tape_id, v_from,
+          coalesce(v_from, 'Someone') || ' loved "' || coalesce(nullif(v_name, ''), 'your tape') || '"');
+  return new;
+end; $$;
+
+drop trigger if exists on_reaction_created on reactions;
+create trigger on_reaction_created
+  after insert on reactions
+  for each row execute procedure notify_on_like();
+
+-- New comment → notify the tape creator (skip self-comments)
+create or replace function notify_on_comment()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_creator uuid; v_name text;
+begin
+  select creator_id, tape_name into v_creator, v_name from tapes where id = new.tape_id;
+  if v_creator is null or v_creator = new.user_id then return new; end if;
+  insert into notifications (user_id, type, tape_id, from_email, message)
+  values (v_creator, 'comment', new.tape_id, new.user_email,
+          coalesce(new.user_email, 'Someone') || ' commented on "' || coalesce(nullif(v_name, ''), 'your tape') || '"');
+  return new;
+end; $$;
+
+drop trigger if exists on_comment_created on comments;
+create trigger on_comment_created
+  after insert on comments
+  for each row execute procedure notify_on_comment();
+
+-- Tape played → notify the tape creator (only on 'tape_played', skip creator's own plays)
+create or replace function notify_on_play()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_creator uuid; v_name text; v_from text;
+begin
+  if new.event_type <> 'tape_played' then return new; end if;
+  select creator_id, tape_name into v_creator, v_name from tapes where id = new.tape_id;
+  if v_creator is null or v_creator = new.viewer_id then return new; end if;
+  if new.viewer_id is not null then
+    select email into v_from from profiles where id = new.viewer_id;
+  end if;
+  insert into notifications (user_id, type, tape_id, from_email, message)
+  values (v_creator, 'play', new.tape_id, v_from,
+          coalesce(v_from, 'Someone') || ' played "' || coalesce(nullif(v_name, ''), 'your tape') || '"');
+  return new;
+end; $$;
+
+drop trigger if exists on_play_event on events;
+create trigger on_play_event
+  after insert on events
+  for each row execute procedure notify_on_play();
+
+
+-- ── STORAGE: cover-photo bucket (used by db.js uploadCoverPhoto) ──────────────
+-- Bucket "tape-covers" must exist and be public. Create it idempotently:
+insert into storage.buckets (id, name, public)
+values ('tape-covers', 'tape-covers', true)
+on conflict (id) do nothing;

@@ -286,7 +286,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
   function showToast(msg) {
     setToast(msg);
-    setTimeout(() => setToast(null), 6000);
+    setTimeout(() => setToast(null), 2800);
   }
 
   // Auto-art: first track artwork from iTunes search results
