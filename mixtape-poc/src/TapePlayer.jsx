@@ -12,6 +12,7 @@ import MatchModal from './MatchModal';
 import AppleMatchModal from './AppleMatchModal';
 import NotificationBell from './NotificationBell';
 import { logEvent, getTapeId, loadTapeById } from './db';
+import { searchYouTube } from './matching';
 
 // ── Interactive match badge for received tapes ───────────────────────────────
 function PlayerBadge({ track, engine, onClick }) {
@@ -129,10 +130,41 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     };
   });
 
+  // ── YouTube error handling with auto-retry on embedding-disabled (150/101) ──
+  // Codes 150 & 101 = owner/Vevo disabled embedding. Instead of just skipping,
+  // search for an embeddable alternative version and swap it in. Each track is
+  // only retried once per session to avoid loops.
+  const retriedRef = useRef(new Set());
+  const ytErrorRef = useRef(() => {});
+  useEffect(() => {
+    ytErrorRef.current = async (code) => {
+      const embedBlocked = code === 150 || code === 101;
+      const tracks = playingSide === 'A' ? tracksA : tracksB;
+      const track  = tracks[playingIndex];
+      if (embedBlocked && track && !retriedRef.current.has(track.id)) {
+        retriedRef.current.add(track.id);
+        showMsg('Finding another version…');
+        try {
+          const { items } = await searchYouTube(`${track.artist} ${track.title}`);
+          const alt = (items || []).find(it => it.youtubeId && it.youtubeId !== track.ytId);
+          if (alt) {
+            const setter = playingSide === 'A' ? setTracksA : setTracksB;
+            setter(arr => arr.map((t, i) => i === playingIndex ? { ...t, ytId: alt.youtubeId } : t));
+            loadedIdRef.current = `yt:${alt.youtubeId}`;
+            yt.play(alt.youtubeId);
+            return;
+          }
+        } catch { /* fall through to skip */ }
+      }
+      showMsg("Skipping — this track can't play here");
+      advanceRef.current();
+    };
+  });
+
   const yt = useYouTube({
     elementId: 'yt-player-recipient',
     onEnded: () => advanceRef.current(),
-    onError: () => { showMsg("Skipping — this track can't play here"); advanceRef.current(); },
+    onError: (code) => ytErrorRef.current(code),
   });
 
   const am = useAppleMusic({
@@ -412,6 +444,24 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             <button className="tp-btn" onClick={next} disabled={!playing} title="Next track">⏭</button>
             <button className="tp-btn" onClick={stop} disabled={!playing} title="Stop">⏹</button>
           </div>
+
+          {/* Prominent Apple Music prompt — shown to subscribers not yet connected.
+              Once authorised, EngineToggle auto-switches to Apple and this hides. */}
+          {am.mkReady && engine !== 'apple' && !(am.authorized && am.isSubscriber) && (
+            <div className="apple-connect-prompt">
+              <span className="apple-connect-text">
+                🎧 Have Apple Music? Connect for full-quality, official audio.
+              </span>
+              <button
+                className="apple-connect-btn"
+                onClick={() => am.authorize()}
+                disabled={am.authorizing}
+              >
+                {am.authorizing ? 'Connecting…' : 'Connect Apple Music'}
+              </button>
+              {am.authError && <span className="apple-connect-err">{am.authError}</span>}
+            </div>
+          )}
 
           <EngineToggle engine={engine} onEngineChange={setEngine} am={am} />
 

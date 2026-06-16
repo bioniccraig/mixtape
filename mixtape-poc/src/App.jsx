@@ -207,6 +207,8 @@ export default function App() {
           <a href="/legal#privacy">Privacy Policy</a>
           <span className="splash-footer-sep">·</span>
           <a href="/legal#terms">Terms of Service</a>
+          <span className="splash-footer-sep">·</span>
+          <a href="https://www.reddit.com/r/sayitwithmusic" target="_blank" rel="noopener noreferrer">Feedback</a>
         </footer>
 
         {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
@@ -258,6 +260,8 @@ export default function App() {
         <a href="/legal#privacy">Privacy Policy</a>
         <span className="splash-footer-sep">·</span>
         <a href="/legal#terms">Terms of Service</a>
+        <span className="splash-footer-sep">·</span>
+        <a href="https://www.reddit.com/r/sayitwithmusic" target="_blank" rel="noopener noreferrer">Feedback</a>
       </footer>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}

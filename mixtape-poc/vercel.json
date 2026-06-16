@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/itunes-search", "destination": "https://itunes.apple.com/search" },
     { "source": "/t/:shareId",    "destination": "/" },
     { "source": "/legal",         "destination": "/" }
   ]
