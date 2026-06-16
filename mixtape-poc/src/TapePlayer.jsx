@@ -61,7 +61,8 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [paused,    setPaused]    = useState(false);
   const [playingSide,  setPlayingSide]  = useState('A');
   const [playingIndex, setPlayingIndex] = useState(0);
-  const [showJCard,    setShowJCard]    = useState(false);
+  const [showJCard,    setShowJCard]    = useState(true);   // sleeve visible by default
+  const [showComments, setShowComments] = useState(false);
   const [toast,        setToast]        = useState(null);
   const [engine,       setEngine]       = useState('youtube'); // 'youtube' | 'apple'
   const [creatorLikes, setCreatorLikes] = useState(0); // like count shown to creator (read-only)
@@ -416,6 +417,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             </div>
           )}
 
+          {/* View controls — Sleeve and Comments as toggles */}
           <div className="player-controls">
             <button
               className={`view-btn ${showJCard ? 'active' : ''}`}
@@ -424,12 +426,21 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
               {showJCard ? '◼ Hide Sleeve' : '📋 View Sleeve'}
             </button>
             <button
-              className="view-btn"
-              onClick={() => document.getElementById('comments-panel')?.scrollIntoView({ behavior: 'smooth' })}
+              className={`view-btn ${showComments ? 'active' : ''}`}
+              onClick={() => setShowComments(v => !v)}
             >
-              💬 Comments
+              💬 {showComments ? 'Hide Comments' : 'Comments'}
             </button>
           </div>
+
+          {/* Comments — inline, right below the buttons */}
+          {showComments && tape.dbId && (
+            <CommentsPanel
+              tapeId={tape.dbId}
+              user={user}
+              onSignInRequest={onSignInRequest}
+            />
+          )}
 
           {/* J-card (read-only) */}
           {showJCard && (
@@ -442,7 +453,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             />
           )}
 
-          {/* Track list */}
+          {/* Track list — shown when sleeve is hidden */}
           {!showJCard && (
             <div className="player-sides">
               {[
@@ -483,14 +494,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
                 </div>
               ))}
             </div>
-          )}
-          {/* Comments */}
-          {tape.dbId && (
-            <CommentsPanel
-              tapeId={tape.dbId}
-              user={user}
-              onSignInRequest={onSignInRequest}
-            />
           )}
 
         </div>

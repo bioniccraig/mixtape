@@ -1265,8 +1265,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  max-height: 280px;
-  overflow-y: auto;
   margin-bottom: 0.9rem;
   padding-right: 2px;
 }

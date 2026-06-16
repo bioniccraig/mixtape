@@ -30,10 +30,7 @@ export default function CommentsPanel({ tapeId, user, onSignInRequest }) {
   const [postError, setPostError] = useState(null);
   const bottomRef = useRef(null);
 
-  // Auto-scroll to newest comment when list grows
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [comments.length]);
+  // No auto-scroll — panel is inline, page scroll is handled naturally
 
   async function handleSubmit(e) {
     e.preventDefault();
