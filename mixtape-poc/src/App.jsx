@@ -10,6 +10,7 @@ import { getSharedTape } from './share';
 import { loadTapeByShareId, loadTapeById, recordTapeView } from './db';
 import { useAuth } from './useAuth';
 import { supabase } from './supabase';
+import { useInstallPrompt } from './useInstallPrompt';
 import './App.css';
 
 // ── Detect /t/SHAREID path ────────────────────────────────────────────────────
@@ -23,6 +24,7 @@ export default function App() {
   // Render legal page immediately — no auth or state needed
   if (window.location.pathname === '/legal') return <Legal />;
   const { user, loading: authLoading } = useAuth();
+  const { canInstall, isInstalled, isIos, install } = useInstallPrompt();
 
   const shareId  = getShareIdFromPath();
   const hashTape = getSharedTape();
@@ -183,6 +185,22 @@ export default function App() {
 
         </div>
 
+        {/* Install prompt */}
+        {!isInstalled && (canInstall || isIos) && (
+          <div className="install-banner">
+            {canInstall ? (
+              <>
+                <span className="install-banner-text">📲 Add MixTape to your home screen</span>
+                <button className="install-banner-btn" onClick={install}>Install</button>
+              </>
+            ) : (
+              <span className="install-banner-text">
+                📲 To install: tap <strong>Share</strong> → <strong>Add to Home Screen</strong>
+              </span>
+            )}
+          </div>
+        )}
+
         <footer className="splash-footer">
           <a href="/legal#privacy">Privacy Policy</a>
           <span className="splash-footer-sep">·</span>
@@ -217,6 +235,22 @@ export default function App() {
         <span className="splash-platform-badge yt">▶ YouTube</span>
         <span className="splash-platform-badge am">♫ Apple Music</span>
       </div>
+
+      {/* Install prompt */}
+      {!isInstalled && (canInstall || isIos) && (
+        <div className="install-banner">
+          {canInstall ? (
+            <>
+              <span className="install-banner-text">📲 Add MixTape to your home screen</span>
+              <button className="install-banner-btn" onClick={install}>Install</button>
+            </>
+          ) : (
+            <span className="install-banner-text">
+              📲 To install: tap <strong>Share</strong> → <strong>Add to Home Screen</strong>
+            </span>
+          )}
+        </div>
+      )}
 
       <footer className="splash-footer">
         <a href="/legal#privacy">Privacy Policy</a>
