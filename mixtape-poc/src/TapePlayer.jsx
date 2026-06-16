@@ -468,11 +468,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
         </div>
       </div>
 
-      {/* Floating "Make Your Own" — mobile only */}
-      <button className="fab-make-own" onClick={onMakeOwn}>
-        ✦ Make Your Own
-      </button>
-
       {toast && <div className="toast">{toast}</div>}
 
       {/* YouTube version review modal (local-only, not saved to DB) */}

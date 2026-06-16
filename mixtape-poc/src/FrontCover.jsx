@@ -81,20 +81,7 @@ export default function FrontCover({
         </div>
       </div>
 
-      {/* ── Colour swatches — shown below cover when editable + no photo ── */}
-      {editable && !hasPhoto && (
-        <div className="fc-swatches">
-          {COVER_COLORS.map(c => (
-            <button
-              key={c}
-              className={`fc-swatch ${coverColor === c ? 'active' : ''}`}
-              style={{ background: c }}
-              onClick={() => onColorChange && onColorChange(coverColor === c ? null : c)}
-              title="Set cover colour"
-            />
-          ))}
-        </div>
-      )}
+      {/* Colour swatches removed — cover is photo-only */}
     </>
   );
 }

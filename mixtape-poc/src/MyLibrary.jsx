@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts, duplicateTape } from './db';
 import { TAPE_SKINS, DEFAULT_SKIN } from './constants';
 
@@ -55,7 +55,7 @@ function SentCard({ tape, onPreview, onDelete, onDuplicate, likeCount }) {
         <span className="lib-card-name">{name}</span>
         <span className="lib-card-meta">
           {count} track{count !== 1 ? 's' : ''}
-          {likeCount > 0 && <span className="lib-like-count">❤️ {likeCount}</span>}
+          <span className="lib-like-count">❤️ {likeCount}</span>
         </span>
         <span className="lib-card-date">{formatDate(tape.updated_at || tape.created_at)}</span>
       </div>
@@ -149,7 +149,6 @@ function ReceivedCard({ tape, onPlay }) {
 
 // ── Main library modal ─────────────────────────────────────────────────────────
 export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
-  const [tab,        setTab]        = useState('mine');
   const [myTapes,    setMyTapes]    = useState([]);
   const [received,   setReceived]   = useState([]);
   const [likeCounts, setLikeCounts] = useState({});
@@ -189,7 +188,6 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
   async function handleDuplicate(tape) {
     const { id, error: err } = await duplicateTape(tape, user.id);
     if (err) { alert(`Couldn't duplicate: ${err}`); return; }
-    // Open the new draft in the builder
     onEdit({ id });
     onClose();
   }
@@ -204,77 +202,75 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
 
         <h2 className="lib-title">My Library</h2>
 
-        <div className="lib-tabs">
-          <button
-            className={`lib-tab ${tab === 'mine' ? 'active' : ''}`}
-            onClick={() => setTab('mine')}
-          >
-            My Tapes {myTapes.length > 0 && <span className="lib-count">{myTapes.length}</span>}
-          </button>
-          <button
-            className={`lib-tab ${tab === 'received' ? 'active' : ''}`}
-            onClick={() => setTab('received')}
-          >
-            Received {received.length > 0 && <span className="lib-count">{received.length}</span>}
-          </button>
-        </div>
-
         <div className="lib-list">
           {loading && <p className="lib-empty">Loading…</p>}
           {!loading && error && <p className="lib-empty" style={{ color: '#e85d75' }}>{error}</p>}
 
-          {/* ── My Tapes tab ── */}
-          {!loading && !error && tab === 'mine' && (
+          {!loading && !error && sent.length === 0 && drafts.length === 0 && received.length === 0 && (
+            <p className="lib-empty">Nothing here yet — make your first tape!</p>
+          )}
+
+          {/* ── Sent tapes ── */}
+          {!loading && !error && (
             <>
-              {sent.length === 0 && drafts.length === 0 && (
-                <p className="lib-empty">You haven't saved any tapes yet. Make one!</p>
-              )}
-
-              {sent.length > 0 && (
-                <>
-                  <p className="lib-section-label">Sent</p>
-                  {sent.map(tape => (
-                    <SentCard
-                      key={tape.id}
-                      tape={tape}
-                      onPreview={t => { onPlay(t); onClose(); }}
-                      onDelete={handleDelete}
-                      onDuplicate={handleDuplicate}
-                      likeCount={likeCounts[tape.id] || 0}
-                    />
-                  ))}
-                </>
-              )}
-
-              {drafts.length > 0 && (
-                <>
-                  <p className="lib-section-label">Drafts</p>
-                  {drafts.map(tape => (
-                    <DraftCard
-                      key={tape.id}
-                      tape={tape}
-                      onEdit={t => { onEdit(t); onClose(); }}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </>
-              )}
+              <p className="lib-section-label">
+                Sent Tapes
+                {sent.length > 0 && <span className="lib-count">{sent.length}</span>}
+              </p>
+              {sent.length === 0
+                ? <p className="lib-section-empty">No sent tapes yet.</p>
+                : sent.map(tape => (
+                  <SentCard
+                    key={tape.id}
+                    tape={tape}
+                    onPreview={t => { onPlay(t); onClose(); }}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    likeCount={likeCounts[tape.id] || 0}
+                  />
+                ))
+              }
             </>
           )}
 
-          {/* ── Received tab ── */}
-          {!loading && !error && tab === 'received' && (
+          {/* ── Drafts ── */}
+          {!loading && !error && (
             <>
-              {received.length === 0 && (
-                <p className="lib-empty">No received tapes yet — share your link and ask someone to send you one.</p>
-              )}
-              {received.map(tape => (
-                <ReceivedCard
-                  key={tape.id}
-                  tape={tape}
-                  onPlay={t => { onPlay(t); onClose(); }}
-                />
-              ))}
+              <p className="lib-section-label">
+                Drafts
+                {drafts.length > 0 && <span className="lib-count">{drafts.length}</span>}
+              </p>
+              {drafts.length === 0
+                ? <p className="lib-section-empty">No drafts.</p>
+                : drafts.map(tape => (
+                  <DraftCard
+                    key={tape.id}
+                    tape={tape}
+                    onEdit={t => { onEdit(t); onClose(); }}
+                    onDelete={handleDelete}
+                  />
+                ))
+              }
+            </>
+          )}
+
+          {/* ── Received tapes ── */}
+          {!loading && !error && (
+            <>
+              <p className="lib-section-label">
+                Received Tapes
+                {received.length > 0 && <span className="lib-count">{received.length}</span>}
+              </p>
+              {received.length === 0
+                ? <p className="lib-section-empty">No received tapes yet.</p>
+                : received.map(tape => (
+                  <ReceivedCard
+                    key={tape.id}
+                    tape={tape}
+                    onPlay={t => { onPlay(t); onClose(); }}
+                  />
+                ))
+              }
             </>
           )}
         </div>

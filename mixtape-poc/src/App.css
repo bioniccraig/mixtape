@@ -1551,10 +1551,19 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #888;
-  margin: 12px 0 6px;
+  margin: 18px 0 6px;
   padding: 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .lib-section-label:first-child { margin-top: 0; }
+.lib-section-empty {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.3);
+  margin: 0 0 4px 2px;
+  font-style: italic;
+}
 .lib-card-sent { border-left: 2px solid rgba(232, 93, 117, 0.35); }
 .lib-btn-copy,
 .lib-btn-dupe {
