@@ -3,6 +3,7 @@ import JCard from './JCard';
 import FrontCover from './FrontCover';
 import CassetteSVG from './Cassette';
 import ReactionButton from './ReactionButton';
+import CommentsPanel from './CommentsPanel';
 import { getReactionState } from './db';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
@@ -455,6 +456,15 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
               ))}
             </div>
           )}
+          {/* Comments */}
+          {tape.dbId && (
+            <CommentsPanel
+              tapeId={tape.dbId}
+              user={user}
+              onSignInRequest={onSignInRequest}
+            />
+          )}
+
         </div>
       </div>
 

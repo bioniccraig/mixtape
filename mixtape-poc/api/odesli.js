@@ -1,26 +1,92 @@
 // Vercel serverless function — resolves a track to its YouTube equivalent.
 //
-// Matching strategy (all aimed at: the right STUDIO version, and one that can
-// actually be embedded/played off-YouTube):
-//   1. Odesli (ISRC + metadata) — try its YouTube Music art-track first (official
-//      studio audio, usually embeddable), then its plain YouTube link.
-//   2. YouTube Data API search — fallback, ranked to prefer official "Topic"/audio
-//      uploads and avoid live/cover/remix versions (unless the track itself is live).
+// Matching strategy (fastest/cheapest first):
+//   0. Supabase cache  — instant, zero API units. Hits on any track matched before.
+//   1. Odesli          — ISRC-based, ~50-80% hit rate (better with ODESLI_API_KEY env var).
+//   2. Invidious       — free open-source YouTube search, no quota. Used when Odesli misses.
+//   3. YouTube Data API — paid fallback (100 units). Only reached if 1 & 2 both fail.
 //
-// Query: ?url=<iTunes/Apple Music trackViewUrl>&title=<t>&artist=<a>
-//    or: ?id=<iTunes track id>&title=<t>&artist=<a>&country=<2-letter>
+// Query: ?url=<Deezer/Apple Music trackViewUrl>&title=<t>&artist=<a>
+//    or: ?id=<Deezer track id>&title=<t>&artist=<a>
 //
 // Returns: { youtubeId, youtubeUrl, title, artist, thumbnail, via }
 
 /* global process */
 
+import { db } from './_supabase.js';
+
+// ── Cache key ─────────────────────────────────────────────────────────────────
+// Extract Deezer track ID from URL or use the id param directly.
+// Returns a stable key like "d:3135556", or null if we can't derive one.
+function cacheKey(url, id) {
+  if (id) return `d:${id}`;
+  const m = (url || '').match(/deezer\.com\/(?:\w+\/)?track\/(\d+)/);
+  return m ? `d:${m[1]}` : null;
+}
+
+// ── Cache read ────────────────────────────────────────────────────────────────
+async function cacheGet(key) {
+  if (!db || !key) return null;
+  try {
+    const { data } = await db
+      .from('track_matches')
+      .select('yt_id, yt_title, yt_channel, yt_thumbnail')
+      .eq('deezer_id', key)
+      .single();
+    if (!data?.yt_id) return null;
+    return {
+      youtubeId:  data.yt_id,
+      youtubeUrl: `https://www.youtube.com/watch?v=${data.yt_id}`,
+      title:      data.yt_title   || null,
+      artist:     data.yt_channel || null,
+      thumbnail:  data.yt_thumbnail || null,
+      via:        'cache',
+    };
+  } catch { return null; }
+}
+
+// ── Cache write ───────────────────────────────────────────────────────────────
+async function cacheSet(key, result) {
+  if (!db || !key || !result?.youtubeId) return;
+  try {
+    await db.from('track_matches').upsert({
+      deezer_id:    key,
+      yt_id:        result.youtubeId,
+      yt_title:     result.title     || null,
+      yt_channel:   result.artist    || null,
+      yt_thumbnail: result.thumbnail || null,
+    }, { onConflict: 'deezer_id' });
+  } catch { /* non-fatal */ }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function extractYouTubeId(url) {
   if (!url) return null;
   const m = url.match(/(?:v=|youtu\.be\/|\/watch\?v=|\/embed\/)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : null;
 }
 
-// Returns ordered candidate ids from Odesli: YouTube Music (studio audio) first.
+// Score a YouTube result for "is this the studio version?" Higher = better.
+function scoreResult(title, channelTitle, idx, wantLive) {
+  const t  = (title        || '').toLowerCase();
+  const ch = (channelTitle || '').toLowerCase();
+  let s = -idx;
+  if (ch.endsWith('- topic'))                                              s += 120;
+  if (t.includes('official audio'))                                        s += 80;
+  else if (t.includes('audio'))                                            s += 25;
+  if (t.includes('official video') || t.includes('official music video'))  s += 35;
+  const heavy = ['live', 'cover', 'remix', 'karaoke', 'instrumental', 'sped up', 'slowed', '8d', 'reaction', 'tribute', 'mashup'];
+  for (const b of heavy) {
+    if (t.includes(b)) {
+      if (b === 'live' && wantLive) continue;
+      s -= 90;
+    }
+  }
+  if (t.includes('lyric')) s -= 15;
+  return s;
+}
+
+// ── Odesli ────────────────────────────────────────────────────────────────────
 async function odesliCandidates(songUrl, country) {
   const params = new URLSearchParams({ url: songUrl, userCountry: country, songIfSingle: 'true' });
   if (process.env.ODESLI_API_KEY) params.set('key', process.env.ODESLI_API_KEY);
@@ -40,8 +106,7 @@ async function odesliCandidates(songUrl, country) {
   return cands;
 }
 
-// Is the video allowed to be embedded off-YouTube? Vevo/major-label videos often
-// return embeddable:false — they play on youtube.com but not inside an app.
+// Is the video allowed to be embedded off-YouTube?
 async function isEmbeddable(id) {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key || !id) return true;
@@ -53,26 +118,50 @@ async function isEmbeddable(id) {
   } catch { return true; }
 }
 
-// Score a YouTube result for "is this the studio version?" Higher = better.
-function scoreResult(snippet, idx, wantLive) {
-  const t = (snippet?.title || '').toLowerCase();
-  const ch = (snippet?.channelTitle || '').toLowerCase();
-  let s = -idx; // gentle nod to YouTube's own relevance order
-  if (ch.endsWith('- topic')) s += 120;              // auto-generated official studio audio
-  if (t.includes('official audio')) s += 80;
-  else if (t.includes('audio')) s += 25;
-  if (t.includes('official video') || t.includes('official music video')) s += 35;
-  const heavy = ['live', 'cover', 'remix', 'karaoke', 'instrumental', 'sped up', 'slowed', '8d', 'reaction', 'tribute', 'mashup'];
-  for (const b of heavy) {
-    if (t.includes(b)) {
-      if (b === 'live' && wantLive) continue; // user actually wants the live cut
-      s -= 90;
-    }
+// ── Invidious (free fallback) ─────────────────────────────────────────────────
+// Tries open-source YouTube frontend instances in sequence.
+// No API key, no quota cost. Falls through silently if all instances are down.
+const INVIDIOUS_INSTANCES = [
+  'inv.nadeko.net',
+  'invidious.privacydev.net',
+  'yewtu.be',
+];
+
+async function searchInvidious(query, wantLive) {
+  if (!query.trim()) return null;
+  for (const host of INVIDIOUS_INSTANCES) {
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 2500);
+      const params = new URLSearchParams({
+        q: query, type: 'video',
+        fields: 'videoId,title,author,videoThumbnails',
+      });
+      const r = await fetch(`https://${host}/api/v1/search?${params}`, { signal: controller.signal });
+      clearTimeout(tid);
+      if (!r.ok) continue;
+      const items = await r.json();
+      if (!Array.isArray(items) || !items.length) continue;
+      const ranked = items
+        .filter(it => it.videoId)
+        .map((it, idx) => ({ it, score: scoreResult(it.title, it.author, idx, wantLive) }))
+        .sort((a, b) => b.score - a.score);
+      const best = ranked[0]?.it;
+      if (!best) continue;
+      return {
+        youtubeId:  best.videoId,
+        youtubeUrl: `https://www.youtube.com/watch?v=${best.videoId}`,
+        title:      best.title  || null,
+        artist:     best.author || null,
+        thumbnail:  best.videoThumbnails?.[0]?.url || null,
+        via:        'invidious',
+      };
+    } catch { continue; }
   }
-  if (t.includes('lyric')) s -= 15; // lyric videos are studio audio but prefer a clean upload
-  return s;
+  return null;
 }
 
+// ── YouTube Data API (paid, last resort) ──────────────────────────────────────
 async function searchYouTube(query, wantLive) {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key || !query.trim()) return null;
@@ -87,7 +176,7 @@ async function searchYouTube(query, wantLive) {
       try { body = await r.json(); } catch { /* ignore */ }
       const reason = body?.error?.errors?.[0]?.reason;
       if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
-        console.error('[odesli] YouTube quota exceeded during fallback search');
+        console.error('[odesli] YouTube quota exceeded');
         return { quotaExceeded: true };
       }
     }
@@ -96,19 +185,20 @@ async function searchYouTube(query, wantLive) {
   const items = ((await r.json()).items || []).filter(it => it.id?.videoId);
   if (!items.length) return null;
   const ranked = items
-    .map((it, idx) => ({ it, score: scoreResult(it.snippet, idx, wantLive) }))
+    .map((it, idx) => ({ it, score: scoreResult(it.snippet?.title, it.snippet?.channelTitle, idx, wantLive) }))
     .sort((a, b) => b.score - a.score);
   const it = ranked[0].it;
   return {
-    youtubeId: it.id.videoId,
+    youtubeId:  it.id.videoId,
     youtubeUrl: `https://www.youtube.com/watch?v=${it.id.videoId}`,
-    title: it.snippet?.title || null,
-    artist: it.snippet?.channelTitle || null,
-    thumbnail: it.snippet?.thumbnails?.default?.url || null,
-    via: 'youtube',
+    title:      it.snippet?.title       || null,
+    artist:     it.snippet?.channelTitle || null,
+    thumbnail:  it.snippet?.thumbnails?.default?.url || null,
+    via:        'youtube',
   };
 }
 
+// ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   const { url, id, title = '', artist = '', country = 'US' } = req.query;
 
@@ -117,9 +207,18 @@ export default async function handler(req, res) {
   if (!songUrl && !title) return res.status(400).json({ error: 'url, id or title required', youtubeId: null });
 
   const wantLive = /\blive\b/i.test(title);
+  const ck = cacheKey(url, id);
+
+  // 0) Cache — zero API cost for any track matched before
+  const cached = await cacheGet(ck);
+  if (cached) {
+    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
+    return res.json(cached);
+  }
+
   let result = null;
 
-  // 1) Odesli candidates (studio audio first), use the first embeddable one.
+  // 1) Odesli — ISRC-based, highest quality match
   try {
     if (songUrl) {
       const cands = await odesliCandidates(songUrl, country);
@@ -129,17 +228,25 @@ export default async function handler(req, res) {
     }
   } catch { /* fall through */ }
 
-  // 2) Ranked YouTube search fallback (prefers studio, avoids live unless wanted).
+  // 2) Invidious — free search, no quota cost
+  if (!result) {
+    try { result = await searchInvidious(`${artist} ${title}`.trim(), wantLive); } catch { /* fall through */ }
+  }
+
+  // 3) YouTube Data API — paid last resort
   if (!result) {
     try { result = await searchYouTube(`${artist} ${title}`.trim(), wantLive); } catch { /* none */ }
   }
 
-  // Quota exhaustion in the fallback — tell the client so it can surface a clear message
+  // Quota exhaustion — tell the client so it can show a clear message
   if (result?.quotaExceeded) {
     return res.json({ youtubeId: null, via: null, quotaExceeded: true });
   }
 
   if (!result) return res.json({ youtubeId: null, via: null });
+
+  // Save to cache so future requests for this track cost nothing
+  cacheSet(ck, result);
 
   res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
   res.json(result);

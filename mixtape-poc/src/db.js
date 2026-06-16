@@ -322,6 +322,37 @@ export async function getReactionCounts(tapeIds) {
 }
 
 
+// ── Comments ──────────────────────────────────────────────────────────────────
+
+export async function getComments(tapeId) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('comments')
+    .select('id, body, created_at, user_id, user_email')
+    .eq('tape_id', tapeId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addComment(tapeId, userId, userEmail, body) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('comments')
+    .insert({ tape_id: tapeId, user_id: userId, user_email: userEmail, body: body.trim() })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteComment(commentId) {
+  if (!supabase) return;
+  const { error } = await supabase.from('comments').delete().eq('id', commentId);
+  if (error) throw error;
+}
+
+
 // ── Log analytics event ───────────────────────────────────────────────────────
 export async function logEvent({ tapeId, eventType, sessionId, viewerId = null, metadata = {} }) {
   if (!supabase || !tapeId) return;
