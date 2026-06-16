@@ -4,6 +4,16 @@
 
 ---
 
+## Progress update (June 2026)
+
+**Stage A — done (code).** Toast timing reverted to 2800ms. `supabase/schema.sql` completed (it was missing the reactions/comments/notifications tables + triggers and the cover/forward columns) and made fully idempotent; Craig ran it, notifications verified live. Remaining: Craig's own new-user phone test.
+
+**Stage B — DONE.** Piped fallback added to the matching pipeline (free, independent of Invidious — cuts paid-quota use); Craig applied for a YouTube quota increase. Error-150/101 now auto-retries at play time (swaps in an embeddable alternative instead of skipping). Deezer search swap was already in place. 4th+ cassette skins added. Repo cleaned (stale `/itunes-search` rewrite removed, Vite temp files gitignored).
+
+**Soft-launch approach (refined).** Launch to **r/AppleMusic** first — Apple Music users get premium in-app audio and the YouTube side gets exercised gently as they share to non-Apple friends. Feedback hub: **r/sayitwithmusic**. Key fix shipped: the app defaulted everyone (including Apple subscribers) to the YouTube engine; added a prominent "Connect Apple Music" prompt and an in-app Feedback link to the subreddit. Next: phone-test the Apple connect flow, then draft the launch post.
+
+---
+
 ## Where we are
 
 V1 is effectively built. Every milestone in the V1 Build Plan is done except the domain (M4), which is blocked until ~14 Aug 2026 by the Wix contract on `sayitwithmusic.net`. On top of the planned scope, the app already has accounts, a saved library, ISRC matching with confirm-at-build, the dual-engine Walkman (YouTube + Apple Music), an installable PWA, reactions, comments, in-app notifications, Sentry monitoring, and a live privacy policy + ToS.
