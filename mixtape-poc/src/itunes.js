@@ -6,6 +6,21 @@
 const DEEZER = '/api/deezer-search';
 const lc = s => (s || '').toLowerCase();
 
+// Strip leading "the " for artist comparisons so "Beatles" matches "The Beatles"
+function normalizeArtist(s) {
+  return lc(s).replace(/^the\s+/, '');
+}
+
+// Loose artist match: normalize both sides, then check if either contains the other.
+// Handles "The" prefix omissions and partial matches ("Simz" ≈ "Simz").
+// We intentionally don't filter OUT results here — trust Deezer's ranking.
+function artistMatch(resultName, queryName) {
+  if (!queryName) return true;
+  const r = normalizeArtist(resultName);
+  const q = normalizeArtist(queryName);
+  return r.includes(q) || q.includes(r);
+}
+
 // ── XHR helper (avoids iOS Safari ITP fetch restrictions) ────────────────────
 function xhr(url) {
   return new Promise((resolve, reject) => {
@@ -63,8 +78,8 @@ async function searchByArtist(artistName) {
   const artists = data.data || [];
   if (!artists.length) return [];
 
-  // Prefer exact artist name match
-  const exact = artists.filter(a => lc(a.name) === lc(artistName));
+  // Prefer exact (normalized) artist name match, fall back to all results
+  const exact = artists.filter(a => normalizeArtist(a.name) === normalizeArtist(artistName));
   const candidates = exact.length ? exact : artists;
 
   const groups = await Promise.all(
@@ -80,7 +95,7 @@ async function searchByArtist(artistName) {
 
   return groups.flat()
     .filter(t => t.title && t.duration)
-    .filter(t => lc(t.artist?.name || '').includes(lc(artistName)))
+    .filter(t => artistMatch(t.artist?.name, artistName))
     .map(formatTrack);
 }
 
@@ -97,8 +112,8 @@ function searchByQuery(artist, track, album) {
     (data.data || [])
       .filter(t => t.title && t.duration)
       .filter(t => {
-        if (album  && !lc(t.album?.title).includes(lc(album)))   return false;
-        if (artist && !lc(t.artist?.name).includes(lc(artist)))  return false;
+        if (album  && !lc(t.album?.title).includes(lc(album))) return false;
+        if (artist && !artistMatch(t.artist?.name, artist))    return false;
         return true;
       })
       .map(formatTrack)

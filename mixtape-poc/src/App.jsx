@@ -139,14 +139,12 @@ export default function App() {
   return (
     <div className="splash">
       <div className="splash-auth-bar">
-        {user ? (
+        {user && (
           <span className="auth-status">
             <button className="btn-auth-link" onClick={() => setShowLibrary(true)}>📼 Library</button>
             <span className="auth-email">{user.email}</span>
             <button className="btn-auth-link" onClick={signOut}>Sign out</button>
           </span>
-        ) : (
-          <button className="btn-auth-link" onClick={() => setShowAuth(true)}>Sign in</button>
         )}
       </div>
 
@@ -158,10 +156,19 @@ export default function App() {
         <span className="logo-text">MixTape</span>
       </div>
       <p className="tagline">Say It With Music</p>
-      <button className="btn-start" onClick={() => { setEditTape(null); setView('builder'); }}>
-        Make a Tape
-      </button>
-      <p className="disclaimer">Search any song from the iTunes catalogue{user ? '' : ' — no login needed'}</p>
+      {user ? (
+        <button className="btn-start" onClick={() => { setEditTape(null); setView('builder'); }}>
+          Make a Tape
+        </button>
+      ) : (
+        <>
+          <button className="btn-start" onClick={() => setShowAuth(true)}>
+            Sign in / Sign up
+          </button>
+          <p className="splash-email-hint">Sign in with just your email address — no password needed</p>
+        </>
+      )}
+      <p className="disclaimer">Create, Personalise, Share</p>
 
       {/* Platform badges */}
       <div className="splash-platforms">

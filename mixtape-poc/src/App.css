@@ -85,6 +85,13 @@ body {
 }
 .btn-start:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(232,93,117,0.4); }
 
+.splash-email-hint {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 8px;
+  letter-spacing: 0.01em;
+}
+
 .btn-saved-tape {
   background: transparent;
   border: 1px solid rgba(232,93,117,0.4);
@@ -479,6 +486,7 @@ body {
 }
 .move-btn:hover:not(:disabled) { background: #3a3a5e; color: #fff; }
 .move-btn:disabled { opacity: 0.3; cursor: default; }
+.cross-move-btn { font-size: 10px; padding: 0 5px; color: #aaa; min-width: 28px; }
 
 .remove-btn {
   background: transparent;

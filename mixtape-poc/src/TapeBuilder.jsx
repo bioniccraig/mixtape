@@ -92,7 +92,8 @@ function AppleMusicBadge({ track, onCheck }) {
 
 // ── Tape track (on the tape) ──────────────────────────────────────────────────
 // Only shows the badge for the active engine so the UI stays uncluttered.
-function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck, onAppleCheck, engine }) {
+function TapeTrack({ track, index, onRemove, onMove, onCrossMove, side, total, isPlaying, onCheck, onAppleCheck, engine }) {
+  const otherSide = side === 'A' ? 'B' : 'A';
   return (
     <div className={`tape-track ${isPlaying ? 'tape-track-playing' : ''}`}>
       <span className="tape-track-num">{isPlaying ? '▶' : index + 1}</span>
@@ -104,8 +105,9 @@ function TapeTrack({ track, index, onRemove, onMove, total, isPlaying, onCheck, 
       {engine === 'apple'   && <AppleMusicBadge track={track} onCheck={onAppleCheck} />}
       <span className="tape-track-dur">{track.durationLabel}</span>
       <div className="tape-track-controls">
-        <button onClick={() => onMove(index, -1)} disabled={index === 0}           className="move-btn">↑</button>
-        <button onClick={() => onMove(index,  1)} disabled={index === total - 1}   className="move-btn">↓</button>
+        <button onClick={() => onMove(index, -1)} disabled={index === 0}           className="move-btn" title="Move up">↑</button>
+        <button onClick={() => onMove(index,  1)} disabled={index === total - 1}   className="move-btn" title="Move down">↓</button>
+        <button onClick={() => onCrossMove(index)} className="move-btn cross-move-btn" title={`Move to Side ${otherSide}`}>→{otherSide}</button>
         <button onClick={() => onRemove(index)}                                     className="remove-btn">✕</button>
       </div>
     </div>
@@ -146,7 +148,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [dbTapeId,  setDbTapeId]  = useState(initialTape?.dbId   || null);
   const [shareId,   setShareId]   = useState(initialTape?.shareId || null);
   const [saveLabel,   setSaveLabel]   = useState('Save');
-  const [shareLabel,  setShareLabel]  = useState('Copy link 🔗');
   const [nativeLabel, setNativeLabel] = useState('Share 📤');
 
   const searchTimer = useRef(null);
@@ -431,6 +432,25 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     else              setSideB(arr);
   }
 
+  function crossMoveTrack(fromSide, index) {
+    const toSide   = fromSide === 'A' ? 'B' : 'A';
+    const fromArr  = fromSide === 'A' ? sideA : sideB;
+    const toArr    = toSide   === 'A' ? sideA : sideB;
+    const toUsedMs = toArr.reduce((t, x) => t + x.durationMs, 0);
+    const track    = fromArr[index];
+    if (!track) return;
+    if (toUsedMs + track.durationMs > MAX_SIDE_MS) {
+      showToast(`Side ${toSide} is full — can't move "${track.title}" there`);
+      return;
+    }
+    if (playing && playingSide === fromSide) setPlaying(false);
+    const setFrom = fromSide === 'A' ? setSideA : setSideB;
+    const setTo   = toSide   === 'A' ? setSideA : setSideB;
+    setFrom(p => p.filter((_, i) => i !== index));
+    setTo(p => [...p, track]);
+    showToast(`Moved "${track.title}" to Side ${toSide}`);
+  }
+
   // ── Save (draft) ────────────────────────────────────────────────────────────
   async function handleSave() {
     if (!user) { onSignInRequest(); return; }
@@ -484,19 +504,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setDbTapeId(id);
     setShareId(sid);
     return `${window.location.origin}/t/${sid}`;
-  }
-
-  async function handleShare() {
-    setShareLabel('Saving…');
-    const url = await publishTape();
-    if (!url) { setShareLabel('Copy link 🔗'); return; }
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      window.prompt('Copy this link:', url);
-    }
-    setShareLabel('Copied! 🔗');
-    setTimeout(() => setShareLabel('Copy link 🔗'), 2500);
   }
 
   async function handleNativeShare() {
@@ -557,11 +564,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
             </button>
           )}
           {hasTracks && (
-            <button className="share-btn hide-mobile" onClick={handleShare} title="Copy share link">
-              {shareLabel}
-            </button>
-          )}
-          {hasTracks && (
             <button className="native-share-btn hide-mobile" onClick={handleNativeShare} title="Share">
               {nativeLabel}
             </button>
@@ -575,9 +577,6 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         <button className="mob-back-btn" onClick={onBack}>← Back</button>
         {hasTracks && user && (
           <button className="save-btn" onClick={handleSave}>{saveLabel}</button>
-        )}
-        {hasTracks && (
-          <button className="share-btn" onClick={handleShare}>{shareLabel}</button>
         )}
         {hasTracks && (
           <button className="native-share-btn" onClick={handleNativeShare}>{nativeLabel}</button>
@@ -715,10 +714,12 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                   key={t.id + i}
                   track={t}
                   index={i}
+                  side={activeSide}
                   total={trackList.length}
                   isPlaying={playing && playingSide === activeSide && playingIndex === i}
                   onRemove={idx => removeTrack(activeSide, idx)}
                   onMove={(idx, dir) => moveTrack(activeSide, idx, dir)}
+                  onCrossMove={idx => crossMoveTrack(activeSide, idx)}
                   engine={engine}
                   onCheck={() => openReview(activeSide, t)}
                   onAppleCheck={() => openAppleReview(activeSide, t)}
