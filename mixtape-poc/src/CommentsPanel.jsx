@@ -24,12 +24,13 @@ function timeAgo(iso) {
 }
 
 export default function CommentsPanel({ tapeId, user, onSignInRequest }) {
-  const { comments, loading, post, remove } = useTapeActivity(tapeId, user);
+  const { comments, loading, error: hookError, post, remove } = useTapeActivity(tapeId, user);
   const [draft,     setDraft]     = useState('');
   const [posting,   setPosting]   = useState(false);
+  const [postError, setPostError] = useState(null);
   const bottomRef = useRef(null);
 
-  // Auto-scroll to newest comment when list changes
+  // Auto-scroll to newest comment when list grows
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments.length]);
@@ -37,9 +38,18 @@ export default function CommentsPanel({ tapeId, user, onSignInRequest }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!draft.trim() || posting) return;
+    const body = draft.trim();
     setPosting(true);
     setDraft('');
-    try { await post(draft); } finally { setPosting(false); }
+    setPostError(null);
+    try {
+      await post(body);
+    } catch (err) {
+      setPostError(err.message || 'Failed to post — please try again.');
+      setDraft(body); // restore so user can retry
+    } finally {
+      setPosting(false);
+    }
   }
 
   function handleKeyDown(e) {
@@ -50,8 +60,14 @@ export default function CommentsPanel({ tapeId, user, onSignInRequest }) {
   }
 
   return (
-    <div className="comments-panel">
-      <h3 className="comments-heading">Comments</h3>
+    <div className="comments-panel" id="comments-panel">
+      <h3 className="comments-heading">
+        💬 Comments {!loading && comments.length > 0 && <span className="comments-count">({comments.length})</span>}
+      </h3>
+
+      {(hookError || postError) && (
+        <p className="comments-error">{hookError || postError}</p>
+      )}
 
       {loading && <p className="comments-loading">Loading…</p>}
 

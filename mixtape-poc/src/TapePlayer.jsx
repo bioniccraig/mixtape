@@ -67,6 +67,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const [creatorLikes, setCreatorLikes] = useState(0); // like count shown to creator (read-only)
   const [reviewingYt,    setReviewingYt]    = useState(null); // { track, side }
   const [reviewingApple, setReviewingApple] = useState(null); // { track, side }
+  const [shareCopied,    setShareCopied]    = useState(false);
 
   // ── Load like count for creator's own tape view (read-only) ──────────────────
   const isCreator = !!(user && tape.creatorId && tape.creatorId === user.id);
@@ -268,6 +269,21 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     ? [...tracksA, ...tracksB].find(t => t.artwork)?.artwork || null
     : null;
 
+  // ── Share: native share sheet on mobile, clipboard fallback ─────────────────
+  async function handleShare() {
+    const url = tape.shareId
+      ? `${window.location.origin}/t/${tape.shareId}`
+      : window.location.href;
+    const title = tape.tapeName ? `MixTape: ${tape.tapeName}` : 'Someone sent you a MixTape';
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
+    }
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    });
+  }
+
   // Count unmatched tracks for the active engine so we can show a banner
   const unmatchedCount = [...tracksA, ...tracksB].filter(t =>
     engine === 'apple'
@@ -279,10 +295,10 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     <div className="player">
       {/* ── Header ── */}
       <header className="builder-header">
-        <div className="header-logo">
+        <button className="header-logo header-logo-btn" onClick={onMakeOwn} title="Back to home">
           <span className="logo-icon">◼</span>
           <span className="logo-text">MixTape</span>
-        </div>
+        </button>
         <div className="header-actions">
           {!user && onSignInRequest && (
             <button className="btn-auth-link" onClick={onSignInRequest}>Sign in / Sign up</button>
@@ -290,6 +306,9 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {user && (
             <span className="auth-status-small">{user.email}</span>
           )}
+          <button className="share-btn player-share-btn" onClick={handleShare} title="Share this tape">
+            {shareCopied ? '✓ Copied!' : '⬆ Share'}
+          </button>
           {tape.allowForward && (
             <button className="share-btn player-make-own-desktop" onClick={onMakeOwn}>
               Make Your Own ✦
@@ -399,9 +418,14 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             <button
               className={`view-btn ${showJCard ? 'active' : ''}`}
               onClick={() => setShowJCard(v => !v)}
-              style={{ flex: 1 }}
             >
               {showJCard ? '◼ Hide Sleeve' : '📋 View Sleeve'}
+            </button>
+            <button
+              className="view-btn"
+              onClick={() => document.getElementById('comments-panel')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              💬 Comments
             </button>
           </div>
 
@@ -471,6 +495,19 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
       </div>
 
       {toast && <div className="toast">{toast}</div>}
+
+      {/* ── Persistent footer ── */}
+      <footer className="player-footer">
+        <button className="player-footer-btn" onClick={onMakeOwn}>← Home</button>
+        <button className="player-footer-btn" onClick={handleShare}>
+          {shareCopied ? '✓ Copied!' : '⬆ Share'}
+        </button>
+        {tape.allowForward && (
+          <button className="player-footer-btn player-footer-make-own" onClick={onMakeOwn}>
+            Make Your Own ✦
+          </button>
+        )}
+      </footer>
 
       {/* YouTube version review modal (local-only, not saved to DB) */}
       {reviewingYt && (

@@ -48,25 +48,21 @@ export function useTapeActivity(tapeId, user) {
   // ── Post a comment ────────────────────────────────────────────────────────────
   const post = useCallback(async (body) => {
     if (!user || !tapeId) return;
-    // Optimistic insert — Realtime will also fire but we dedupe above
-    const optimistic = {
-      id:         crypto.randomUUID(),
-      tape_id:    tapeId,
-      user_id:    user.id,
-      user_email: user.email,
-      body:       body.trim(),
-      created_at: new Date().toISOString(),
-      _optimistic: true,
-    };
-    setComments(prev => [...prev, optimistic]);
     try {
       const saved = await addComment(tapeId, user.id, user.email, body);
-      // Replace optimistic entry with the real DB row
-      setComments(prev => prev.map(c => c._optimistic && c.body === body ? saved : c));
+      if (saved) {
+        // Add the real DB row; Realtime may also fire but dedup by ID handles it
+        setComments(prev =>
+          prev.some(c => c.id === saved.id) ? prev : [...prev, saved]
+        );
+      } else {
+        // INSERT succeeded but SELECT blocked (RLS) — reload from DB as fallback
+        const fresh = await getComments(tapeId);
+        setComments(fresh);
+      }
     } catch (err) {
-      // Roll back
-      setComments(prev => prev.filter(c => c.id !== optimistic.id));
       setError(err.message);
+      throw err; // re-throw so CommentsPanel can surface it
     }
   }, [tapeId, user]);
 
