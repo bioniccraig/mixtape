@@ -10,7 +10,8 @@ import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
 import MatchModal from './MatchModal';
 import AppleMatchModal from './AppleMatchModal';
-import { logEvent, getTapeId } from './db';
+import NotificationBell from './NotificationBell';
+import { logEvent, getTapeId, loadTapeById } from './db';
 
 // ── Interactive match badge for received tapes ───────────────────────────────
 function PlayerBadge({ track, engine, onClick }) {
@@ -304,6 +305,10 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {!user && onSignInRequest && (
             <button className="btn-auth-link" onClick={onSignInRequest}>Sign in / Sign up</button>
           )}
+          {user && <NotificationBell user={user} onOpenTape={async id => {
+            const { tape: t } = await loadTapeById(id);
+            if (t) { onMakeOwn(); setTimeout(() => window.location.assign(`/t/${t.shareId}`), 50); }
+          }} />}
           {user && (
             <span className="auth-status-small">{user.email}</span>
           )}

@@ -8,8 +8,9 @@ import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
-import { upsertTape, uploadCoverPhoto } from './db';
+import { upsertTape, uploadCoverPhoto, loadTapeById } from './db';
 import AppleMatchModal from './AppleMatchModal';
+import NotificationBell from './NotificationBell';
 import FrontCover from './FrontCover';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -557,6 +558,10 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         <div className="header-actions">
           {user ? (
             <>
+              <NotificationBell user={user} onOpenTape={async id => {
+                const { tape: t } = await loadTapeById(id);
+                if (t && onBack) { onBack(); setTimeout(() => window.location.assign(`/t/${t.shareId}`), 50); }
+              }} />
               <button className="btn-library" onClick={onOpenLibrary} title="My Library">
                 📼 Library
               </button>

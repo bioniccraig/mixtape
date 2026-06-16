@@ -11,6 +11,7 @@ import { loadTapeByShareId, loadTapeById, recordTapeView } from './db';
 import { useAuth } from './useAuth';
 import { supabase } from './supabase';
 import { useInstallPrompt } from './useInstallPrompt';
+import NotificationBell from './NotificationBell';
 import './App.css';
 
 // ── Detect /t/SHAREID path ────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ export default function App() {
       <div className="splash splash-home">
         {/* Top bar */}
         <div className="splash-auth-bar">
+          <NotificationBell user={user} onOpenTape={id => openTapeInPlayer({ id })} />
           <span className="auth-status">
             <span className="auth-email">{user.email}</span>
             <button className="btn-auth-link" onClick={signOut}>Sign out</button>
