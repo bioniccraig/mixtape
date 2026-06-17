@@ -2236,6 +2236,56 @@ body {
   color: rgba(232,93,117,0.8);
 }
 
+/* ── Cream theme — signed-in home ────────────────────────────────────── */
+.splash-home { background: #f5e5cc; }
+.splash-home::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg,
+    #e8623a 0 22%, #e0a23a 22% 42%, #e8d6b0 42% 58%, #4a9d92 58% 80%, #2a6f6a 80% 100%);
+  z-index: 1;
+}
+.splash-home .home-create-pane { border-right-color: rgba(0,0,0,0.10); }
+.splash-home .disclaimer,
+.splash-home .splash-platform-label { color: #9a8f7e; }
+.splash-home .auth-status { color: #8a8276; }
+.splash-home .auth-email { color: #6b6155; }
+.splash-home .btn-auth-link { color: #e8623a; }
+.splash-home .btn-auth-link:hover { color: #c44f2c; }
+.splash-home .notif-bell-btn:hover { background: rgba(0,0,0,0.06); }
+.splash-home .install-banner {
+  background: rgba(232,98,58,0.10); border: 1px solid rgba(232,98,58,0.35);
+}
+.splash-home .install-banner-text { color: #6b6155; }
+.splash-home .install-banner-text strong { color: #2a2622; }
+.splash-home .install-banner-btn { background: #e8623a; }
+.splash-home .splash-footer {
+  background: rgba(245,229,204,0.92); border-top: 1px solid rgba(0,0,0,0.08);
+}
+.splash-home .splash-footer a { color: #8a8276; }
+.splash-home .splash-footer a:hover { color: #e8623a; }
+.splash-home .splash-footer-sep { color: #c9bfa9; }
+/* Library cards */
+.splash-home .il-heading { color: #8a8276; }
+.splash-home .il-loading,
+.splash-home .il-empty,
+.splash-home .il-section-label { color: #9a8f7e; }
+.splash-home .il-count { background: rgba(0,0,0,0.07); color: #6b6155; }
+.splash-home .il-card { background: #fffdf7; border: 1px solid #e6d8ba; color: #2a2622; }
+.splash-home .il-card:hover { background: #fff; border-color: #d8c7a2; }
+.splash-home .il-thumb { background: rgba(0,0,0,0.05); }
+.splash-home .il-thumb-placeholder { background: rgba(0,0,0,0.08); }
+.splash-home .il-name { color: #2a2622; }
+.splash-home .il-meta { color: #8a8276; }
+.splash-home .il-date { color: #a89e8c; }
+.splash-home .il-badge {
+  background: rgba(224,162,58,0.16); border: 1px solid rgba(224,162,58,0.45); color: #9a6510;
+}
+.splash-home .il-likes { color: #c44f2c; }
+/* Mobile divider */
+@media (max-width: 680px) {
+  .splash-home .home-create-pane { border-bottom-color: rgba(0,0,0,0.10); }
+}
+
 /* ── Player footer (persistent nav bar) ─────────────────────────────────── */
 .player-footer {
   position: fixed;

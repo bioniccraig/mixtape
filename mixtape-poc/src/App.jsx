@@ -160,7 +160,7 @@ export default function App() {
               <CassetteSVG skin="rainbow" title="MIXTAPE" spinning={false} />
             </div>
             <div className="logo">
-              <img className="logo-wordmark logo-wordmark-dark-bg" src="/wordmark.png" alt="MixTape" />
+              <img className="logo-wordmark" src="/wordmark.png" alt="MixTape" />
             </div>
             <img className="tagline-img" src="/tagline.png" alt="Say It With Music" />
             <button className="btn-start" onClick={() => { setEditTape(null); setView('builder'); }}>
