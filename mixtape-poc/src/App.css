@@ -2465,9 +2465,16 @@ body {
 .builder .logout-btn { border-color: #d8c7a2; color: #8a7f6e; }
 .builder .logout-btn:hover { border-color: #e8623a; color: #e8623a; }
 .builder .auth-status-small { color: #9a8f7e; }
-/* Panels */
-.panel-tape { background: #f0e3c9; border-right-color: #e0d2b4; }
-.panel-search { background: #f5e5cc; }
+/* Panels — even 50/50 split, tape content capped + centred */
+.panel-tape {
+  background: #f0e3c9;
+  border-right-color: #e0d2b4;
+  flex: 1 1 0;
+  width: auto;
+  align-items: center;
+}
+.panel-tape > * { width: 100%; max-width: 460px; }
+.panel-search { background: #f5e5cc; flex: 1 1 0; }
 /* Tape name */
 .builder .tape-name-input { background: #fffdf7; border-color: #d8c7a2; color: #2a2622; }
 .builder .tape-name-input:focus { border-color: #e8623a; }

@@ -22,17 +22,24 @@ export default function FrontCover({
     ? { background: coverColor }
     : { background: '#1a1a2e' };
 
-  const hasPhoto = !!coverImageUrl;
-  const hasArt   = !hasPhoto && !!autoArtUrl;
+  const hasPhoto   = !!coverImageUrl;
+  const hasArt     = !hasPhoto && !!autoArtUrl;
+  // No photo, no auto-art, no chosen colour → branded stack-of-cassettes cover
+  const hasDefault = !hasPhoto && !hasArt && !coverColor;
 
   return (
     <>
       <div className="front-cover-wrap">
-        <div className="front-cover" style={hasPhoto ? {} : bgStyle}>
+        <div className="front-cover" style={hasPhoto || hasDefault ? {} : bgStyle}>
 
           {/* ── Uploaded cover photo ── */}
           {hasPhoto && (
             <img className="fc-photo" src={coverImageUrl} alt="Cover" />
+          )}
+
+          {/* ── Default cover: branded stack of cassettes ── */}
+          {hasDefault && (
+            <img className="fc-photo" src="/cover-default.jpg" alt="" aria-hidden />
           )}
 
           {/* ── Auto-art: blurred background + centred album art ── */}
