@@ -2621,6 +2621,41 @@ body {
 .player-footer-btn:hover { background: #fff8ec; }
 .player-footer-make-own { background: rgba(232,98,58,0.15); border-color: rgba(232,98,58,0.35); }
 .player-footer-make-own:hover { background: rgba(232,98,58,0.25); }
+
+/* ══ Cream theme — shared modals (sign-in + library) ══════════════════════
+   The two match modals already use the light .mm-card, so they're untouched. */
+.modal-box { background: #fffdf7; border: 1px solid #e6d8ba; color: #2a2622; }
+.modal-close { color: #9a8f7e; }
+.modal-close:hover { color: #2a2622; }
+/* Sign-in modal */
+.auth-modal h2 { color: #2a2622; }
+.auth-sub { color: #8a7f6e; }
+.auth-email-input { background: #fff; border-color: #d8c7a2; color: #2a2622; }
+.auth-email-input::placeholder { color: #b3a890; }
+.auth-disclaimer { color: #9a8f7e; }
+.auth-sent h2 { color: #2a2622; }
+.auth-sent p { color: #6b6155; }
+.btn-auth-secondary { background: #f0e3c9; border-color: #d8c7a2; color: #2a2622; }
+/* Library modal */
+.lib-title { color: #2a2622; }
+.lib-tabs { border-bottom-color: #e6d8ba; }
+.lib-tab { color: #8a7f6e; }
+.lib-tab:hover:not(.active) { color: #6b6155; }
+.lib-count { background: rgba(232,98,58,0.18); color: #c44f2c; }
+.lib-empty { color: #9a8f7e; }
+.lib-card { background: #fbf4e6; border-color: #e6d8ba; }
+.lib-card:hover { background: #f5ecdb; }
+.lib-card-thumb { background: #e0d2b4; }
+.lib-card-name { color: #2a2622; }
+.lib-card-meta { color: #8a7f6e; }
+.lib-card-date { color: #a89e8c; }
+.lib-section-label { color: #8a7f6e; }
+.lib-section-empty { color: #a89e8c; }
+.lib-btn-copy, .lib-btn-dupe { background: #f0e3c9; color: #6b6155; border-color: #d8c7a2; }
+.lib-btn-copy:hover, .lib-btn-dupe:hover { background: #e8dcc0; }
+.lib-btn-edit { background: #f0e3c9; color: #6b6155; }
+.lib-btn-del { background: #f0e3c9; color: #9a8f7e; }
+.lib-btn-cancel { background: #f0e3c9; color: #6b6155; }
 /* Player view toggle (Tape / Sleeve / Comments) */
 .player .view-btn { background: #fffdf7; border-color: #d8c7a2; color: #8a7f6e; }
 .player .view-btn.active { background: #fff1dd; border-color: #e8623a; color: #e8623a; }

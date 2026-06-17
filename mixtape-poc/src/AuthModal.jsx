@@ -35,8 +35,7 @@ export default function AuthModal({ onClose }) {
         <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
 
         <div className="auth-logo">
-          <span className="logo-icon">◼</span>
-          <span className="logo-text">MixTape</span>
+          <img className="header-wordmark" src="/wordmark.png" alt="MixTape" />
         </div>
 
         {sent ? (
