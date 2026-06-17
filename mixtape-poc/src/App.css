@@ -20,8 +20,8 @@ body {
 
 .splash-hero {
   width: 100%;
-  max-width: 380px;
-  padding: 0 24px;
+  max-width: 480px;
+  padding: 0 16px;
   margin-bottom: 8px;
 }
 
@@ -40,6 +40,58 @@ body {
   text-transform: uppercase;
   color: #fff;
 }
+
+/* ── Brush wordmark logo ─────────────────────────────────────────────── */
+.logo-wordmark { height: 54px; width: auto; display: block; }
+/* Same dark-ink asset, flipped to near-white for dark surfaces */
+.logo-wordmark-dark-bg { filter: invert(1) brightness(1.7); }
+
+/* Round Walkman icon above the wordmark on the public splash */
+.splash-icon {
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  display: block;
+}
+/* Larger, fuller wordmark on the public splash */
+.splash:not(.splash-home) .logo-wordmark {
+  height: auto;
+  width: min(74vw, 340px);
+}
+
+/* Brush-script tagline (extracted from the banner) */
+.tagline-img {
+  width: min(58vw, 270px);
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── Cream theme — public splash (signed-out + loading) ──────────────── */
+.splash:not(.splash-home) { background: #f5e5cc; }
+.splash:not(.splash-home)::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg,
+    #e8623a 0 22%, #e0a23a 22% 42%, #e8d6b0 42% 58%, #4a9d92 58% 80%, #2a6f6a 80% 100%);
+}
+.splash:not(.splash-home) .tagline { color: #8a8276; }
+.splash:not(.splash-home) .disclaimer,
+.splash:not(.splash-home) .splash-email-hint,
+.splash:not(.splash-home) .splash-platform-label { color: #9a8f7e; }
+.splash:not(.splash-home) .splash-footer {
+  background: rgba(245,229,204,0.92);
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+.splash:not(.splash-home) .splash-footer a { color: #8a8276; }
+.splash:not(.splash-home) .splash-footer a:hover { color: #e8623a; }
+.splash:not(.splash-home) .splash-footer-sep { color: #c9bfa9; }
+.splash:not(.splash-home) .install-banner {
+  background: rgba(232,98,58,0.10);
+  border: 1px solid rgba(232,98,58,0.35);
+}
+.splash:not(.splash-home) .install-banner-text { color: #6b6155; }
+.splash:not(.splash-home) .install-banner-text strong { color: #2a2622; }
+.splash:not(.splash-home) .install-banner-btn { background: #e8623a; }
 
 .tagline {
   font-family: var(--mono);
@@ -71,7 +123,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e85d75;
+  background: #e8623a;
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -83,7 +135,7 @@ body {
   margin-top: 12px;
   letter-spacing: 0.5px;
 }
-.btn-start:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(232,93,117,0.4); }
+.btn-start:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(232,98,58,0.4); }
 
 .splash-email-hint {
   font-size: 0.78rem;
@@ -1378,11 +1430,10 @@ body {
 .cassette {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
   margin: 0 auto;
   aspect-ratio: 3 / 2;
   container-type: inline-size;
-  filter: drop-shadow(0 12px 28px rgba(0,0,0,0.35));
 }
 .cassette-body { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; }
 .cassette-reel { position: absolute; height: auto; transform-origin: center center; will-change: transform; user-select: none; pointer-events: none; }

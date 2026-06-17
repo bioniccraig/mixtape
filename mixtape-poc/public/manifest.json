@@ -4,8 +4,8 @@
   "description": "Make a personalised mixtape for someone you love.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#863bff",
+  "background_color": "#f5e5cc",
+  "theme_color": "#e8623a",
   "orientation": "portrait-primary",
   "icons": [
     {

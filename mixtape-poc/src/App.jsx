@@ -89,8 +89,7 @@ export default function App() {
     return (
       <div className="splash">
         <div className="logo">
-          <span className="logo-icon">◼</span>
-          <span className="logo-text">MixTape</span>
+          <img className="logo-wordmark" src="/wordmark.png" alt="MixTape" />
         </div>
         <p className="tagline">Loading…</p>
       </div>
@@ -161,10 +160,9 @@ export default function App() {
               <CassetteSVG skin="rainbow" title="MIXTAPE" spinning={false} />
             </div>
             <div className="logo">
-              <span className="logo-icon">◼</span>
-              <span className="logo-text">MixTape</span>
+              <img className="logo-wordmark logo-wordmark-dark-bg" src="/wordmark.png" alt="MixTape" />
             </div>
-            <p className="tagline">Say It With Music</p>
+            <img className="tagline-img" src="/tagline.png" alt="Say It With Music" />
             <button className="btn-start" onClick={() => { setEditTape(null); setView('builder'); }}>
               + Create a Tape
             </button>
@@ -220,14 +218,14 @@ export default function App() {
   // ── Splash — signed out ───────────────────────────────────────────────────
   return (
     <div className="splash">
+      <img className="splash-icon" src="/splash-icon.png" alt="" />
+      <div className="logo">
+        <img className="logo-wordmark" src="/wordmark.png" alt="MixTape" />
+      </div>
+      <img className="tagline-img" src="/tagline.png" alt="Say It With Music" />
       <div className="splash-hero">
         <CassetteSVG skin="rainbow" title="MIXTAPE" spinning={false} />
       </div>
-      <div className="logo">
-        <span className="logo-icon">◼</span>
-        <span className="logo-text">MixTape</span>
-      </div>
-      <p className="tagline">Say It With Music</p>
       <button className="btn-start" onClick={() => setShowAuth(true)}>
         Sign in / Sign up
       </button>
