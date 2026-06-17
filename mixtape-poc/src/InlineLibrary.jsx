@@ -15,28 +15,33 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+// Pick one of the 6 case-spine colours, stable per tape id
+function caseNumFor(tape) {
+  const key = String(tape.id || tape.tape_name || tape.tapeName || '');
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h + key.charCodeAt(i)) % 6;
+  return h + 1; // 1..6
+}
+
 function MiniCard({ tape, likeCount, onClick, badge }) {
-  const thumb = skinThumb(tape.skin);
   const name  = tape.tape_name || tape.tapeName || 'Untitled';
   const count = (Array.isArray(tape.tracks_a) ? tape.tracks_a.length : 0)
               + (Array.isArray(tape.tracks_b) ? tape.tracks_b.length : 0);
+  const caseNum = caseNumFor(tape);
+  const date = formatDate(tape.updated_at || tape.created_at);
 
   return (
-    <button className="il-card" onClick={onClick}>
-      <div className="il-thumb">
-        {thumb
-          ? <img src={thumb} alt={name} />
-          : <div className="il-thumb-placeholder" />}
-      </div>
-      <div className="il-info">
-        <span className="il-name">{name}</span>
-        <span className="il-meta">
+    <button className="lib-spine" onClick={onClick} title={name}>
+      <img className="lib-spine-img" src={`/cases/case${caseNum}.jpg`} alt="" />
+      <span className="lib-spine-label">
+        <span className="lib-spine-name">{name}</span>
+        <span className="lib-spine-meta">
           {count} track{count !== 1 ? 's' : ''}
-          {badge && <span className="il-badge">{badge}</span>}
-          {likeCount > 0 && <span className="il-likes">❤️ {likeCount}</span>}
+          {badge && ` · ${badge}`}
+          {date && ` · ${date}`}
+          {likeCount > 0 && ` · ❤ ${likeCount}`}
         </span>
-        <span className="il-date">{formatDate(tape.updated_at || tape.created_at)}</span>
-      </div>
+      </span>
     </button>
   );
 }

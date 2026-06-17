@@ -2258,6 +2258,58 @@ body {
   color: rgba(232,98,58,0.8);
 }
 
+/* ── Library cassette-case spines (shelf view) ──────────────────────────── */
+.lib-spine {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 -1px;          /* flush — cases touch like a stack */
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.lib-spine:hover { transform: translateX(5px); z-index: 2; }
+.lib-spine-img {
+  width: 100%;
+  display: block;
+  border-radius: 0;
+}
+/* Handwritten label sits on the case's blank label area, clear of the "A" tab */
+.lib-spine-label {
+  position: absolute;
+  top: 0;
+  left: 17.5%;
+  width: 48%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+}
+.lib-spine-name {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: clamp(18px, 4.6vw, 28px);
+  line-height: 1;
+  color: #1f1d1b;
+  transform: rotate(-1deg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lib-spine-meta {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.01em;
+  color: #6a6055;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── Cream theme — signed-in home ────────────────────────────────────── */
 .splash-home { background: #f5e5cc; }
 .splash-home::before {
