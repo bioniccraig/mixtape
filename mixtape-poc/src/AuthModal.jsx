@@ -43,7 +43,7 @@ export default function AuthModal({ onClose }) {
             <p className="auth-sent-icon">📬</p>
             <h2>Check your email</h2>
             <p>We sent a sign-in link to <strong>{email}</strong>.<br />Click it to sign in — no password needed.</p>
-            <button className="btn-auth-secondary" onClick={onClose}>Got it</button>
+            <p className="auth-sent-hint">Can't find it? Check your spam or junk folder — it sometimes lands there. The link can take a minute to arrive.</p>
           </div>
         ) : (
           <>

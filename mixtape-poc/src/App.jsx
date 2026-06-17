@@ -7,7 +7,7 @@ import MyLibrary     from './MyLibrary';
 import InlineLibrary from './InlineLibrary';
 import Legal         from './Legal';
 import { getSharedTape } from './share';
-import { loadTapeByShareId, loadTapeById, recordTapeView } from './db';
+import { loadTapeByShareId, loadTapeById, recordTapeView, deleteAccount } from './db';
 import { useAuth } from './useAuth';
 import { supabase } from './supabase';
 import { useInstallPrompt } from './useInstallPrompt';
@@ -36,6 +36,23 @@ export default function App() {
   const [tapeLoading,  setTapeLoading]  = useState(!!shareId);
   const [showAuth,     setShowAuth]     = useState(false);
   const [showLibrary,  setShowLibrary]  = useState(false);
+  const [showDelete,   setShowDelete]   = useState(false);
+  const [deleting,     setDeleting]     = useState(false);
+  const [deleteError,  setDeleteError]  = useState(null);
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError(null);
+    const { ok, error } = await deleteAccount();
+    if (ok) {
+      localStorage.removeItem('mixtape_saved');
+      await signOut();
+      window.location.assign('/');
+    } else {
+      setDeleteError(error);
+      setDeleting(false);
+    }
+  }
 
   // ── Fetch DB tape for /t/SHAREID (runs once per shareId) ─────────────────
   useEffect(() => {
@@ -207,10 +224,30 @@ export default function App() {
           <a href="/legal#terms">Terms of Service</a>
           <span className="splash-footer-sep">·</span>
           <a href="https://www.reddit.com/r/sayitwithmusic" target="_blank" rel="noopener noreferrer">Feedback</a>
+          <span className="splash-footer-sep">·</span>
+          <button className="splash-footer-btn-link" onClick={() => { setDeleteError(null); setShowDelete(true); }}>Delete account</button>
         </footer>
 
         {showAuth    && <AuthModal    onClose={() => setShowAuth(false)} />}
         {showLibrary && <MyLibrary user={user} onClose={() => setShowLibrary(false)} onPlay={openTapeInPlayer} onEdit={openTapeInBuilder} />}
+        {showDelete  && (
+          <div className="modal-overlay" onClick={() => !deleting && setShowDelete(false)}>
+            <div className="modal-box delete-modal" onClick={e => e.stopPropagation()}>
+              <h2>Delete your account?</h2>
+              <p className="delete-modal-text">
+                This permanently deletes your account, every tape you've made, and all your data.
+                This <strong>cannot be undone</strong>.
+              </p>
+              {deleteError && <p className="auth-error">{deleteError}</p>}
+              <div className="delete-modal-actions">
+                <button className="btn-delete-cancel" onClick={() => setShowDelete(false)} disabled={deleting}>Cancel</button>
+                <button className="btn-delete-confirm" onClick={handleDeleteAccount} disabled={deleting}>
+                  {deleting ? 'Deleting…' : 'Delete everything'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -130,6 +130,26 @@ export async function deleteTape(tapeId) {
   return { error: error?.message || null };
 }
 
+// ── Delete account (permanent) ────────────────────────────────────────────────
+// Calls the server function, which is the only place allowed to remove the user.
+export async function deleteAccount() {
+  if (!supabase) return { ok: false, error: 'Supabase not configured' };
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) return { ok: false, error: 'You are not signed in.' };
+  try {
+    const res = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: json.error || 'Failed to delete account.' };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Network error — please try again.' };
+  }
+}
+
 
 // ── Load tape by share ID (for recipient links) ───────────────────────────────
 export async function loadTapeByShareId(shareId) {

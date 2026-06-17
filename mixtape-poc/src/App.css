@@ -2689,6 +2689,7 @@ body {
 .auth-disclaimer { color: #9a8f7e; }
 .auth-sent h2 { color: #2a2622; }
 .auth-sent p { color: #6b6155; }
+.auth-sent-hint { font-size: 12.5px; color: #9a8f7e; line-height: 1.5; margin-top: 4px; }
 .btn-auth-secondary { background: #f0e3c9; border-color: #d8c7a2; color: #2a2622; }
 /* Library modal */
 .lib-title { color: #2a2622; }
@@ -2710,6 +2711,27 @@ body {
 .lib-btn-edit { background: #f0e3c9; color: #6b6155; }
 .lib-btn-del { background: #f0e3c9; color: #9a8f7e; }
 .lib-btn-cancel { background: #f0e3c9; color: #6b6155; }
+
+/* Delete account — footer link + confirmation modal */
+.splash-footer-btn-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12px; color: #8a8276; line-height: 1;
+}
+.splash-footer-btn-link:hover { color: #c0392b; }
+.delete-modal { max-width: 400px; width: 100%; }
+.delete-modal h2 { font-size: 20px; font-weight: 700; color: #2a2622; margin-bottom: 10px; }
+.delete-modal-text { font-size: 14px; color: #6b6155; line-height: 1.55; margin-bottom: 16px; }
+.delete-modal-text strong { color: #c0392b; }
+.delete-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+.btn-delete-cancel {
+  background: #f0e3c9; border: 1px solid #d8c7a2; color: #2a2622;
+  border-radius: 8px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.btn-delete-confirm {
+  background: #c0392b; border: none; color: #fff;
+  border-radius: 8px; padding: 9px 18px; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.btn-delete-confirm:disabled, .btn-delete-cancel:disabled { opacity: 0.5; cursor: default; }
 /* Player view toggle (Tape / Sleeve / Comments) */
 .player .view-btn { background: #fffdf7; border-color: #d8c7a2; color: #8a7f6e; }
 .player .view-btn.active { background: #fff1dd; border-color: #e8623a; color: #e8623a; }
