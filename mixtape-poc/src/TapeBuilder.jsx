@@ -552,8 +552,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       {/* ── Header ── */}
       <header className="builder-header">
         <div className="header-logo">
-          <span className="logo-icon">◼</span>
-          <span className="logo-text">MixTape</span>
+          <img className="header-wordmark" src="/wordmark.png" alt="MixTape" />
         </div>
         <div className="header-actions">
           {user ? (

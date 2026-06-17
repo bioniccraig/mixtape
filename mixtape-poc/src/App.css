@@ -2440,6 +2440,107 @@ body {
   color: rgba(255,255,255,0.4);
 }
 
+/* ══ Cream theme — Builder ════════════════════════════════════════════════
+   Scoped under .builder so the dark base rules stay intact for any screen
+   not yet converted. Colored status pills (match badges) and the paper
+   J-card are intentionally left as-is. */
+.builder { background: #f5e5cc; }
+.builder-header { background: #fffdf7; border-bottom-color: #e6d8ba; }
+.builder .header-logo .logo-icon { color: #e8623a; }
+.builder .header-logo .logo-text { color: #2a2622; }
+.builder .user-name { color: #8a7f6e; }
+.builder .user-avatar { background: #e0d2b4; }
+.builder .logout-btn { border-color: #d8c7a2; color: #8a7f6e; }
+.builder .logout-btn:hover { border-color: #e8623a; color: #e8623a; }
+.builder .auth-status-small { color: #9a8f7e; }
+/* Panels */
+.panel-tape { background: #f0e3c9; border-right-color: #e0d2b4; }
+.panel-search { background: #f5e5cc; }
+/* Tape name */
+.builder .tape-name-input { background: #fffdf7; border-color: #d8c7a2; color: #2a2622; }
+.builder .tape-name-input:focus { border-color: #e8623a; }
+.builder .tape-name-input::placeholder { color: #b3a890; }
+/* Time bar + side toggle */
+.builder .side-label { color: #e8623a; }
+.builder .time-used { color: #8a7f6e; }
+.builder .time-bar-bg { background: #e0d2b4; }
+.builder .side-btn { background: #fffdf7; border-color: #d8c7a2; color: #8a7f6e; }
+.builder .side-btn.active { background: #e8623a; border-color: #e8623a; color: #fff; }
+.builder .side-btn:hover:not(.active) { border-color: #e8623a; color: #e8623a; }
+/* Tape tracklist */
+.builder .empty-side { color: #b3a890; }
+.builder .tape-track { background: #fffdf7; }
+.builder .tape-track-num { color: #e8623a; }
+.builder .tape-track-title { color: #2a2622; }
+.builder .tape-track-artist { color: #8a7f6e; }
+.builder .tape-track-dur { color: #a89e8c; }
+.builder .move-btn { background: #ece0c2; color: #8a7f6e; }
+.builder .move-btn:hover:not(:disabled) { background: #e0d2b4; color: #2a2622; }
+.builder .cross-move-btn { color: #8a7f6e; }
+.builder .remove-btn { color: #b3a890; }
+.builder .remove-btn:hover { color: #e8623a; }
+/* Search panel */
+.builder .search-field-label { color: #9a8f7e; }
+.builder .search-input { background: #fffdf7; border-color: #d8c7a2; color: #2a2622; }
+.builder .search-input:focus { border-color: #e8623a; }
+.builder .search-input::placeholder { color: #b3a890; }
+.builder .searching-spinner { color: #e8623a; }
+.builder .search-tab { border-color: #d8c7a2; color: #9a8f7e; }
+.builder .search-tab.active { border-color: #e8623a; color: #e8623a; background: rgba(232,98,58,0.10); }
+.builder .search-tab:hover:not(.active) { border-color: #b3a890; color: #6b6155; }
+.builder .empty-search { color: #b3a890; }
+.builder .track-row { background: #fffdf7; }
+.builder .track-row:hover { background: #fff8ec; }
+.builder .track-art { background: #e0d2b4; }
+.builder .track-title { color: #2a2622; }
+.builder .track-artist { color: #8a7f6e; }
+.builder .track-dur { color: #a89e8c; }
+/* add-btn keeps its orange/blue fill + white text */
+.builder .add-btn { background: #e8623a; }
+/* View toggle + play button */
+.builder .view-btn { background: #fffdf7; border-color: #d8c7a2; color: #8a7f6e; }
+.builder .view-btn.active { background: #fff1dd; border-color: #e8623a; color: #e8623a; }
+.builder .view-btn:hover:not(.active) { border-color: #b3a890; color: #6b6155; }
+.builder .play-btn { background: #fffdf7; border-color: #d8c7a2; color: #8a7f6e; }
+.builder .play-btn.playing { border-color: #e8623a; color: #e8623a; background: rgba(232,98,58,0.10); }
+/* Skin picker + transport */
+.builder .skin-thumb { background: #e0d2b4; }
+.builder .skin-thumb.active { border-color: #e8623a; box-shadow: 0 0 0 2px rgba(232,98,58,0.3); }
+.builder .tp-btn { background: #ece0c2; color: #2a2622; }
+.builder .tp-btn:hover:not(:disabled) { background: #e0d2b4; }
+.builder .tp-btn.tp-main { background: #e8623a; color: #fff; }
+.builder .tp-btn.tp-main:hover:not(:disabled) { background: #f06d85; }
+/* Header buttons */
+.builder .save-btn { background: rgba(232,98,58,0.12); border-color: rgba(232,98,58,0.4); color: #c44f2c; }
+.builder .save-btn:hover { background: rgba(232,98,58,0.2); }
+.builder .btn-library { border-color: #d8c7a2; color: #6b6155; }
+.builder .btn-library:hover { border-color: #e8623a; color: #e8623a; }
+.builder .notif-bell-btn:hover { background: rgba(0,0,0,0.06); }
+/* Now-playing indicator */
+.builder .now-playing-text { color: #6b6155; }
+/* Forward toggle */
+.builder .forward-toggle { background: #fffdf7; border-color: #e6d8ba; }
+.builder .forward-toggle-label { color: #2a2622; }
+.builder .forward-toggle-hint { color: #8a7f6e; }
+/* Attention modal (rendered inside .builder) */
+.builder .attention-modal { background: #fffdf7; border-color: #e8623a; }
+.builder .attention-modal h3 { color: #c44f2c; }
+.builder .attention-modal p { color: #6b6155; }
+.builder .attention-track-item { background: #f5e5cc; }
+.builder .attention-track-item:hover { background: #efe1c4; }
+.builder .attention-track-name { color: #2a2622; }
+.builder .attention-track-artist { color: #8a7f6e; }
+.builder .attention-fix-btn { border-color: #d8c7a2; color: #6b6155; }
+.builder .attention-fix-btn:hover { border-color: #8a7f6e; color: #2a2622; }
+/* Mobile bars */
+.builder .mobile-action-bar { background: #fffdf7; border-top-color: #e6d8ba; }
+.builder .mob-back-btn { border-color: #d8c7a2; color: #6b6155; }
+.builder .mobile-tabs { background: #fffdf7; border-bottom-color: #e6d8ba; }
+.builder .mobile-tab { color: #8a7f6e; }
+.builder .mobile-tab.active { color: #e8623a; border-bottom-color: #e8623a; }
+/* Header wordmark */
+.header-wordmark { height: 26px; width: auto; display: block; }
+
 /* ── Notification Bell ───────────────────────────────────────────────────── */
 .notif-bell-wrap {
   position: relative;
