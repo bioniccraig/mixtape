@@ -330,8 +330,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
       {/* ── Header ── */}
       <header className="builder-header">
         <button className="header-logo header-logo-btn" onClick={onMakeOwn} title="Back to home">
-          <span className="logo-icon">◼</span>
-          <span className="logo-text">MixTape</span>
+          <img className="header-wordmark" src="/wordmark.png" alt="MixTape" />
         </button>
         <div className="header-actions">
           {!user && onSignInRequest && (
