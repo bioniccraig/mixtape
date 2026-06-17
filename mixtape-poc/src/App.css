@@ -2043,21 +2043,33 @@ body {
 }
 
 .home-create-pane .splash-hero {
-  width: 200px;
-  margin-bottom: 16px;
+  width: min(80%, 340px);
+  margin-bottom: 18px;
 }
 
 .home-create-pane .logo {
-  margin-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.home-create-pane .logo-wordmark {
+  height: auto;
+  width: min(78%, 320px);
 }
 
 .home-create-pane .tagline {
   margin-bottom: 20px;
 }
 
+.home-create-pane .tagline-img {
+  width: min(64%, 270px);
+  margin-bottom: 8px;
+}
+
 .home-create-pane .btn-start {
   width: 100%;
-  max-width: 220px;
+  max-width: 300px;
+  font-size: 19px;
+  padding: 16px 40px;
   margin-bottom: 12px;
 }
 
