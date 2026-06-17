@@ -2043,17 +2043,20 @@ body {
 }
 
 .home-create-pane .splash-hero {
-  width: min(80%, 340px);
-  margin-bottom: 18px;
+  width: min(88%, 380px);
+  max-width: 380px;
+  margin-bottom: 20px;
 }
 
 .home-create-pane .logo {
-  margin-bottom: 10px;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 12px;
 }
 
 .home-create-pane .logo-wordmark {
   height: auto;
-  width: min(78%, 320px);
+  width: min(84%, 360px);
 }
 
 .home-create-pane .tagline {
@@ -2061,8 +2064,8 @@ body {
 }
 
 .home-create-pane .tagline-img {
-  width: min(64%, 270px);
-  margin-bottom: 8px;
+  width: min(70%, 320px);
+  margin-bottom: 10px;
 }
 
 .home-create-pane .btn-start {
