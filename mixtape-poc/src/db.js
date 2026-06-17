@@ -194,7 +194,7 @@ export async function getReceivedTapes(userId) {
 
   const { data, error } = await supabase
     .from('events')
-    .select('created_at, tape:tapes(id, share_id, tape_name, skin, creator_id, status, created_at)')
+    .select('created_at, tape:tapes(id, share_id, tape_name, skin, creator_id, status, created_at, tracks_a, tracks_b)')
     .eq('event_type', 'tape_opened')
     .eq('viewer_id', userId)
     .eq('tapes.status', 'published')
