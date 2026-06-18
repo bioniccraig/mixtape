@@ -1,5 +1,5 @@
 # MixTape — Engineering & Infrastructure Review
-**Date:** 18 June 2026 · **Audience:** Craig (non-technical founder) · **Reviewed:** full app code, database rules, server functions, hosting config
+**Date:** 18 June 2026 · **Last updated:** 18 June 2026 · **Audience:** Craig (non-technical founder) · **Reviewed:** full app code, database rules, server functions, hosting config
 
 ---
 

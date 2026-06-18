@@ -169,34 +169,55 @@ export function useAppleMusic({ onEnded, onError } = {}) {
       let catalogId = knownCatalogId || itunesIdCache.get(cacheKey);
 
       if (!catalogId) {
-        // Use the Apple Music Catalog API (same backend as the app) — finds studio
-        // versions that the legacy iTunes Search API consistently misses.
-        const params = new URLSearchParams({ term: title, storefront, limit: 20 });
-        const res    = await fetch(`/api/apple-search?${params}`);
-        const data   = await res.json();
-        const songs  = data.songs || [];
-        const lc     = s => (s || '').toLowerCase();
+        // Resolve the Apple catalog ID by searching the Apple Music Catalog API.
+        // Normalise titles/artists so variants still compare equal: lower-case,
+        // drop a leading "the", turn "&" into "and", strip "(feat. …)" and
+        // punctuation. This is what stops "wrong song" matches.
+        const norm = s => (s || '')
+          .toLowerCase()
+          .replace(/\(feat\.?[^)]*\)/g, ' ')
+          .replace(/\bfeat\.?\b.*$/g, ' ')
+          .replace(/&/g, ' and ')
+          .replace(/^the\s+/, '')
+          .replace(/[^a-z0-9]+/g, ' ')
+          .trim();
+
+        const t = norm(title), a = norm(artist);
+        // Alternate versions we want to AVOID when the original also exists.
+        const VARIANT = /\b(live|acoustic|remix|remaster(ed)?|radio edit|demo|karaoke|cover|instrumental|sped\s?up|slowed|reprise|commentary|tribute|re-?recorded|taylor'?s version)\b|\(live/i;
 
         function scoreResult(r) {
-          const tn = lc(r.name), an = lc(r.artistName);
-          const t  = lc(title),  a  = lc(artist);
-          const artistScore = an === a ? 10 : (an.includes(a) || a.includes(an)) ? 5 : -99;
-          if (artistScore < 0) return -99;
-          let score = artistScore;
-          if (tn === t)               score += 10;
-          else if (tn.includes(t) || t.includes(tn)) score += 5;
-          if (/\(live[\s,)]|\blive\b at/i.test(r.name)) score -= 8;
-          if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.name)) score -= 4;
+          const tn = norm(r.name), an = norm(r.artistName);
+          // HARD GATES: both the artist AND the title must match (exactly, or one
+          // contains the other). If either fails, this is not our song — reject it.
+          const artistOk = an === a || an.includes(a) || a.includes(an);
+          const titleOk  = tn === t || tn.includes(t) || t.includes(tn);
+          if (!artistOk || !titleOk) return null;
+          let score = (an === a ? 10 : 5) + (tn === t ? 10 : 4);
+          if (VARIANT.test(r.name)) score -= 12; // strongly prefer the original
           return score;
         }
 
-        const match = songs
-          .map(r => ({ r, score: scoreResult(r) }))
-          .filter(({ score }) => score > 0)
-          .sort((a, b) => b.score - a.score)[0]?.r
-          || songs[0];
+        async function searchApple(term) {
+          const params = new URLSearchParams({ term, storefront, limit: 25 });
+          const res    = await fetch(`/api/apple-search?${params}`);
+          const data   = await res.json();
+          return data.songs || [];
+        }
 
-        if (!match) throw new Error(`"${title}" not found on Apple Music`);
+        const pickBest = songs => songs
+          .map(r => ({ r, score: scoreResult(r) }))
+          .filter(({ score }) => score != null)
+          .sort((x, y) => y.score - x.score)[0]?.r || null;
+
+        // Primary: search WITH the artist so the correct recording is in the
+        // results (a title-only search returns the most popular namesake — the
+        // cause of the wrong-song bug). Fallback: title-only, but STILL gated on
+        // artist+title, so we never play a different artist's track.
+        let match = pickBest(await searchApple(`${title} ${artist}`));
+        if (!match) match = pickBest(await searchApple(title));
+
+        if (!match) throw new Error(`"${title}" by ${artist} not found on Apple Music`);
         catalogId = String(match.id);
         itunesIdCache.set(cacheKey, catalogId);
       }
