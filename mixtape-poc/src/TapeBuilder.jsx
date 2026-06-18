@@ -9,6 +9,7 @@ import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
 import { upsertTape, uploadCoverPhoto, loadTapeById } from './db';
+import { buildCommunityShareUrl } from './share';
 import AppleMatchModal from './AppleMatchModal';
 import NotificationBell from './NotificationBell';
 import FrontCover from './FrontCover';
@@ -154,6 +155,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [shareId,   setShareId]   = useState(initialTape?.shareId || null);
   const [saveLabel,   setSaveLabel]   = useState('Save');
   const [nativeLabel, setNativeLabel] = useState('Share 📤');
+  const [communityLabel, setCommunityLabel] = useState('🤝 Community');
 
   const searchTimer = useRef(null);
 
@@ -539,6 +541,16 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setNativeLabel('Share 📤');
   }
 
+  // Publish the tape, then open Reddit's submit page (pre-filled with the /t/ link)
+  // so the creator can post it straight to the r/SayItWithMusic community.
+  async function handleCommunityShare() {
+    setCommunityLabel('Saving…');
+    const url = await publishTape();
+    if (!url) { setCommunityLabel('🤝 Community'); return; }
+    window.open(buildCommunityShareUrl({ tapeName, shareUrl: url }), '_blank', 'noopener');
+    setCommunityLabel('🤝 Community');
+  }
+
   const [mobilePanel, setMobilePanel] = useState('search');
 
   const trackList        = activeSide === 'A' ? sideA : sideB;
@@ -581,6 +593,12 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
               {nativeLabel}
             </button>
           )}
+          {hasTracks && (
+            <button className="native-share-btn community-share-btn hide-mobile" onClick={handleCommunityShare}
+                    title="Publish and post to the r/SayItWithMusic community">
+              {communityLabel}
+            </button>
+          )}
           <button className="logout-btn hide-mobile" onClick={onBack}>← Back</button>
         </div>
       </header>
@@ -593,6 +611,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         )}
         {hasTracks && (
           <button className="native-share-btn" onClick={handleNativeShare}>{nativeLabel}</button>
+        )}
+        {hasTracks && (
+          <button className="native-share-btn community-share-btn" onClick={handleCommunityShare}>
+            {communityLabel}
+          </button>
         )}
       </div>
 

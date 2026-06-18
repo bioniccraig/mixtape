@@ -90,3 +90,21 @@ export function buildShareUrl({ tapeName, theme, sideA, sideB, note }) {
   // Real users are immediately JS-redirected to /#tape= by the serverless function.
   return `${window.location.origin}/api/tape?n=${name}&d=${encoded}`;
 }
+
+// ── Community share (Reddit r/SayItWithMusic) ─────────────────────────────────
+// Opens Reddit's "submit post" page pre-filled with the tape's title + link, so
+// the user posts to the community under their OWN Reddit account in one tap.
+// No Reddit API or credentials needed. ALWAYS pass the DB-backed /t/SHAREID link
+// (not a #tape= hash link) so the Reddit post gets a real preview + working likes.
+export const COMMUNITY_SUBREDDIT = 'SayItWithMusic';
+export const COMMUNITY_FLAIR     = 'MixTape Showcase';
+
+export function buildCommunityShareUrl({ tapeName, shareUrl }) {
+  const title  = tapeName ? `🎵 ${tapeName}` : '🎵 A MixTape';
+  const params = new URLSearchParams({
+    title,
+    url:        shareUrl,
+    flair_text: COMMUNITY_FLAIR, // best-effort; back up with an AutoMod flair rule
+  });
+  return `https://www.reddit.com/r/${COMMUNITY_SUBREDDIT}/submit?${params.toString()}`;
+}

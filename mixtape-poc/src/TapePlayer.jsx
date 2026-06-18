@@ -13,6 +13,7 @@ import AppleMatchModal from './AppleMatchModal';
 import NotificationBell from './NotificationBell';
 import { logEvent, getTapeId, loadTapeById } from './db';
 import { searchYouTube } from './matching';
+import { buildCommunityShareUrl } from './share';
 
 // ── Interactive match badge for received tapes ───────────────────────────────
 function PlayerBadge({ track, engine, onClick }) {
@@ -318,6 +319,19 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     });
   }
 
+  // ── Share to the MixTape community (Reddit r/SayItWithMusic) ───────────────
+  // Only offered when the creator allowed sharing (allowForward) AND the tape is
+  // DB-backed (has a shareId) so the Reddit post links to the real /t/ page.
+  const canCommunityShare = !!(tape.allowForward && tape.shareId);
+  function handleCommunityShare() {
+    if (!tape.shareId) return;
+    const url = `${window.location.origin}/t/${tape.shareId}`;
+    window.open(
+      buildCommunityShareUrl({ tapeName: tape.tapeName, shareUrl: url }),
+      '_blank', 'noopener'
+    );
+  }
+
   // Count unmatched tracks for the active engine so we can show a banner
   const unmatchedCount = [...tracksA, ...tracksB].filter(t =>
     engine === 'apple'
@@ -346,6 +360,12 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           <button className="share-btn player-share-btn" onClick={handleShare} title="Share this tape">
             {shareCopied ? '✓ Copied!' : '⬆ Share'}
           </button>
+          {canCommunityShare && (
+            <button className="share-btn player-community-share" onClick={handleCommunityShare}
+                    title="Post this tape to the r/SayItWithMusic community">
+              🤝 Share with the Community
+            </button>
+          )}
           {tape.allowForward && (
             <button className="share-btn player-make-own-desktop" onClick={onMakeOwn}>
               Make Your Own ✦
@@ -564,6 +584,12 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
         <button className="player-footer-btn" onClick={handleShare}>
           {shareCopied ? '✓ Copied!' : '⬆ Share'}
         </button>
+        {canCommunityShare && (
+          <button className="player-footer-btn player-footer-community" onClick={handleCommunityShare}
+                  title="Post this tape to the r/SayItWithMusic community">
+            🤝 Community
+          </button>
+        )}
         {tape.allowForward && (
           <button className="player-footer-btn player-footer-make-own" onClick={onMakeOwn}>
             Make Your Own ✦
