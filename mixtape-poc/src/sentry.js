@@ -19,6 +19,14 @@ export function initSentry() {
       'Failed to fetch',
       'Load failed',
       'ResizeObserver loop limit exceeded',
+      // MusicKit (Apple Music) internal async housekeeping. These reject inside
+      // Apple's library during normal play/stop transitions; our app handles the
+      // playback UX gracefully (skip/advance), so they are benign noise.
+      'The play() method was called without a previous stop() or pause() call',
+      'A method was called without a previous descriptor',
+      // Browser autoplay policy — audio blocked until a user gesture. Expected,
+      // not a bug; the user simply presses play.
+      'The request is not allowed by the user agent',
     ],
   });
 }

@@ -26,7 +26,8 @@
     <!-- PWA service worker -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+        window.addEventListener('load', () =>
+          navigator.serviceWorker.register('/sw.js').catch(() => { /* SW registration unsupported/blocked — ignore */ }));
       }
     </script>
   </head>

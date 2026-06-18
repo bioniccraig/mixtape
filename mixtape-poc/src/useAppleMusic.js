@@ -216,7 +216,14 @@ export function useAppleMusic({ onEnded, onError } = {}) {
     }
   }, []);
 
-  const pause  = useCallback(() => { try { MusicKit.getInstance().pause(); } catch { /* ignore */ } }, []);
+  // pause()/stop() are fire-and-forget (not awaited by callers). MusicKit returns
+  // a promise that can reject internally (e.g. "A method was called without a
+  // previous descriptor" when stopped with an empty timeline) — a synchronous
+  // try/catch does NOT catch that async rejection, so it surfaces as an unhandled
+  // rejection in Sentry. Swallow the promise explicitly.
+  const pause  = useCallback(() => {
+    try { Promise.resolve(MusicKit.getInstance().pause()).catch(() => {}); } catch { /* ignore */ }
+  }, []);
   const resume = useCallback(async () => {
     try {
       const music = MusicKit.getInstance();
@@ -228,7 +235,9 @@ export function useAppleMusic({ onEnded, onError } = {}) {
       }
     } catch { /* ignore */ }
   }, []);
-  const stop   = useCallback(() => { try { MusicKit.getInstance().stop();  } catch { /* ignore */ } }, []);
+  const stop   = useCallback(() => {
+    try { Promise.resolve(MusicKit.getInstance().stop()).catch(() => {}); } catch { /* ignore */ }
+  }, []);
 
   // ready = fully set up and able to play
   const ready = mkReady && authorized && isSubscriber;
