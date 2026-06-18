@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getReactionState, toggleReaction } from './db';
+import { captureHandledError } from './sentry';
 
 export default function ReactionButton({ tapeId, user, onSignInRequest }) {
   const [liked,   setLiked]   = useState(false);
@@ -28,9 +29,11 @@ export default function ReactionButton({ tapeId, user, onSignInRequest }) {
     const { liked: serverLiked, count: serverCount, error } = await toggleReaction(tapeId, user.id);
 
     if (error) {
-      // Revert
+      // Revert the optimistic update and report the real reason so we can see
+      // (in Sentry) whether likes are failing for a reason beyond missing dbId.
       setLiked(wasLiked);
       setCount(wasCount);
+      captureHandledError('like_failed', error);
     } else {
       setLiked(serverLiked);
       setCount(serverCount);

@@ -1,0 +1,27 @@
+# MixTape — User Feedback & Suggestions Log
+
+Running log of feedback and feature suggestions from users during the soft launch (started 18 June 2026, via Reddit + r/sayitwithmusic).
+
+**How to read this:** newest items added to the top of the table. Status: 🆕 New · 🔍 Investigating · 🛠️ In progress · ✅ Done · ❄️ Deferred · ❌ Won't do. Priority is a rough first pass, not final.
+
+| # | Area | Item | What users are saying / the ask | Type | Source | Priority | Status | Notes |
+|---|------|------|----------------------------------|------|--------|----------|--------|-------|
+| 7 | Social | Like button not persisting | Likes don't stick: a user likes a tape, returns later and the like is gone. Creators viewing their own shared tape see no likes at all. | Bug | Users | High | ✅ Fixed (deploy pending) | Root cause: tapes opened via `#tape=` hash links have no `dbId`, so likes failed the `reactions.tape_id` FK — and `toggleReaction` **swallowed the error**, so the heart filled then vanished on reload. Fixed 18 Jun: `toggleReaction` now surfaces write errors; failed likes captured to Sentry (`like_failed`); like UI hidden when no `dbId`. Deeper cure = item #8 (always share `/t/shareId`). Watch Sentry for any secondary cause (missing profile row → would need a profiles INSERT policy). |
+| 8 | Sharing (tech) | Always use DB-backed share links | Follow-up to #7: hash/`#tape=` links and the OG `/api/tape` redirect drop the tape's DB identity, so recipients on those links can't like/comment/be counted. Make every share resolve to `/t/SHAREID`. | Bug (root cure) | Internal | High | 🆕 New | Builder already shares `/t/shareId`; `TapePlayer.handleShare` falls back to the hash URL when `tape.shareId` is missing. Ensure tapes are always DB-saved with a shareId before sharing. |
+| 6 | Social | Friends / profiles | Add friends, view friends' tapes & profiles, and share tapes in-app between users. | Feature (big) | Users | High (interest) | 🆕 New | ⚠️ Strategic: same gifting→social-network shift as #4; needs accounts/profiles, a friend graph, and in-app sharing. Discuss scope. |
+| 5 | Tape Sharing | Tape of the week/month | A featured "tape of the week/month", chosen by likes, plays, or a community poll/vote. | Feature | Users | Med | 🆕 New | Builds on existing reactions + play analytics. Editorial/curation angle; good for engagement + Reddit content. |
+| 4 | Tape Sharing | Public community feed | Let users publish tapes to a community gallery and browse/discover tapes made by others. | Feature (big) | Users | High (interest) | 🆕 New | ⚠️ Strategic: pushes MixTape from 1-to-1 gifting toward a social network (the gifting-vs-social scope question). Needs a publish/visibility model + moderation. Discuss scope before building. |
+| 3 | Search | Highlight already-added tracks | Search results should colour/mark songs that are already on the tape, so it's obvious what's been added. | Enhancement | Users | Med | 🆕 New | UX polish; we already track the tape's track list, so results can cross-reference it. |
+| 2 | Search | Album search returns wrong artists | Searching an album title returns songs *named* like the album by many different artists, not the actual album. e.g. "Let It Be" returns lots of bands but not The Beatles. | Bug | Users | Med-High | 🆕 New | Search is Deezer (`/api/deezer-search`, `itunes.js`). Likely needs album-aware querying / artist disambiguation. |
+| 1 | Search | Numbers in titles return poorly | Search misses or mis-ranks tracks with numbers in the title. e.g. "One After 909" by The Beatles doesn't return as expected. | Bug | Users | High | 🆕 New | Deezer query syntax / tokenisation of numerals. Repro reported. |
+
+---
+
+## Parking lot / themes
+_Group recurring themes here as patterns emerge across multiple users._
+
+## Decisions made
+_When an item is actioned or rejected, note the outcome and date here so it doesn't get re-litigated._
+
+- **18 Jun 2026 — Community/social features deferred to V2/V3.** The public community feed (#4) and friends/profiles (#6) are appealing but represent a deliberate shift from 1-to-1 gifting toward a social network. Decision: not now — revisit as a V2/V3 theme. Keep MixTape gifting-first through the current launch. (Lighter community touches like "tape of the week" #5 may be considered sooner.)
+- **18 Jun 2026 — Like bug (#7) prioritised for immediate fix.**

@@ -282,19 +282,29 @@ export async function duplicateTape(tape, creatorId) {
 // Toggle a ❤️ on a tape. Returns the new liked state + total count.
 export async function toggleReaction(tapeId, userId) {
   if (!supabase) return { liked: false, count: 0, error: 'Supabase not configured' };
+  // Guard: a tape opened from a #tape= hash link has no DB id, so a like can't be
+  // persisted (the reactions.tape_id FK would be null). Fail loudly, don't pretend.
+  if (!tapeId) return { liked: false, count: 0, error: 'This tape has no saved id, so likes cannot be saved.' };
+  if (!userId) return { liked: false, count: 0, error: 'Sign in to like.' };
 
-  const { data: existing } = await supabase
+  const { data: existing, error: selErr } = await supabase
     .from('reactions')
     .select('id')
     .eq('tape_id', tapeId)
     .eq('user_id', userId)
     .maybeSingle();
+  if (selErr) return { liked: false, count: 0, error: selErr.message };
 
+  // IMPORTANT: previously the insert/delete error was discarded, so a failed write
+  // (null tape_id, missing profile row, RLS denial) looked like a success — the
+  // heart filled in but nothing was saved, then "disappeared" on reload. Check it.
+  let writeErr;
   if (existing) {
-    await supabase.from('reactions').delete().eq('id', existing.id);
+    ({ error: writeErr } = await supabase.from('reactions').delete().eq('id', existing.id));
   } else {
-    await supabase.from('reactions').insert({ tape_id: tapeId, user_id: userId });
+    ({ error: writeErr } = await supabase.from('reactions').insert({ tape_id: tapeId, user_id: userId }));
   }
+  if (writeErr) return { liked: !!existing, count: 0, error: writeErr.message };
 
   const { count } = await supabase
     .from('reactions')

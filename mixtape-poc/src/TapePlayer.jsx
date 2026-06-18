@@ -388,8 +388,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             />
           </div>
 
-          {/* Reaction — toggle for recipients, read-only count for creator */}
-          {isCreator ? (
+          {/* Reaction — toggle for recipients, read-only count for creator.
+              Only shown for DB-backed tapes (those opened via /t/SHAREID). A tape
+              opened from a #tape= hash link has no dbId, so likes can't be saved —
+              hide the control rather than show one that silently fails. */}
+          {tape.dbId && (isCreator ? (
             <div className="creator-likes">
               <span>❤️</span>
               <span className="creator-likes-count">
@@ -404,7 +407,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
               user={user}
               onSignInRequest={onSignInRequest}
             />
-          )}
+          ))}
 
           {/* YouTube screen — only shown when using YouTube engine */}
           <div className={`yt-frame ${playing && engine === 'youtube' ? 'show' : ''}`}>

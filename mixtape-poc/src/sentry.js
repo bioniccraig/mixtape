@@ -73,5 +73,20 @@ export function captureQuotaExceeded(query) {
   });
 }
 
+/**
+ * Capture an error we handled gracefully but want visibility into (e.g. a like
+ * that failed to save). `context` is a short label; `err` is the error/message.
+ */
+export function captureHandledError(context, err) {
+  if (!import.meta.env.PROD) {
+    console.error(`[${context}]`, err);
+    return;
+  }
+  Sentry.captureMessage(`${context}: ${err?.message || err}`, {
+    level: 'error',
+    tags: { context },
+  });
+}
+
 // Re-export the Sentry namespace so callers can use Sentry.ErrorBoundary etc.
 export { Sentry };
