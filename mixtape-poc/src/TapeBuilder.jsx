@@ -10,6 +10,7 @@ import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
 import { upsertTape, uploadCoverPhoto, loadTapeById } from './db';
 import { buildCommunityShareUrl } from './share';
+import { findAppleMatch } from './appleMatch';
 import AppleMatchModal from './AppleMatchModal';
 import NotificationBell from './NotificationBell';
 import FrontCover from './FrontCover';
@@ -346,29 +347,9 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   // (same backend as the Apple Music app — returns studio versions reliably).
   async function resolveAppleMatch(track, side) {
     try {
-      const params = new URLSearchParams({ term: track.title, storefront, limit: 20 });
-      const res    = await fetch(`/api/apple-search?${params}`);
-      const data   = await res.json();
-      const songs  = data.songs || [];
-      const lc     = s => (s || '').toLowerCase();
-
-      function score(r) {
-        const tn = lc(r.name), an = lc(r.artistName);
-        const t  = lc(track.title), a  = lc(track.artist);
-        const artistScore = an === a ? 10 : (an.includes(a) || a.includes(an)) ? 5 : -99;
-        if (artistScore < 0) return -99;
-        let s = artistScore;
-        if (tn === t)                        s += 10; else if (tn.includes(t) || t.includes(tn)) s += 5;
-        if (/\(live[\s,)]|\blive\b at/i.test(r.name))                    s -= 8;
-        if (/\(remix|remaster|acoustic|radio.?edit|demo\b/i.test(r.name)) s -= 4;
-        return s;
-      }
-
-      const match = songs
-        .map(r => ({ r, s: score(r) }))
-        .filter(x => x.s > 0)
-        .sort((a, b) => b.s - a.s)[0]?.r || songs[0];
-
+      // Shared matcher (see appleMatch.js) — same logic the player uses, so the
+      // stored Apple ID and the badge reflect the track that will actually play.
+      const match = await findAppleMatch(track.title, track.artist, storefront);
       if (match) {
         patchTrack(side, track.id, {
           appleId:     String(match.id),
