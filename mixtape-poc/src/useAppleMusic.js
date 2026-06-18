@@ -63,9 +63,31 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   useEffect(() => { onEndedRef.current = onEnded; });
   useEffect(() => { onErrorRef.current = onError; });
 
-  // Stable listener ref so we can remove it on unmount
+  // Auto-advance guard refs:
+  // lastPlayAtRef — when we last started a track. Terminal events that arrive
+  //   within a short window of starting are stale events from the previous track
+  //   or transition noise from our stop()→setQueue()→play() sequence, NOT a real
+  //   end-of-track, so we ignore them.
+  // advancedThisTrackRef — advance only ONCE per track even though MusicKit can
+  //   fire BOTH `ended` and `completed` at a natural finish.
+  const lastPlayAtRef        = useRef(0);
+  const advancedThisTrackRef = useRef(false);
+
+  // Stable listener ref so we can remove it on unmount.
+  // We queue one song at a time, so each track is its own 1-item queue. When a
+  // 1-item queue finishes, MusicKit does NOT reliably fire `ended` (5) — some
+  // tracks emit `completed` (10) instead. Keying off only `ended` meant those
+  // tracks never advanced, so playback stalled after a few songs at random.
+  // Catch both, de-duped, ignoring transition/stale events.
   const stateListenerRef = useRef(({ state }) => {
-    if (state === 5) onEndedRef.current?.(); // 5 = MusicKit.PlaybackStates.ended
+    const PS        = window.MusicKit?.PlaybackStates;
+    const ended     = PS ? PS.ended     : 5;
+    const completed = PS ? PS.completed : 10;
+    if (state !== ended && state !== completed) return;
+    if (Date.now() - lastPlayAtRef.current < 1500) return; // stale/transition event
+    if (advancedThisTrackRef.current) return;              // already advanced this track
+    advancedThisTrackRef.current = true;
+    onEndedRef.current?.();
   });
 
   // Configure MusicKit on mount and restore any existing session
@@ -184,6 +206,10 @@ export function useAppleMusic({ onEnded, onError } = {}) {
       // before queuing and playing the next track.
       try { await music.stop(); } catch { /* ignore if already stopped */ }
       await music.setQueue({ songs: [catalogId] });
+      // Arm the auto-advance guard for this new track BEFORE play() so any stale
+      // terminal event from the previous track falls inside the ignore window.
+      lastPlayAtRef.current        = Date.now();
+      advancedThisTrackRef.current = false;
       await music.play();
     } catch (err) {
       onErrorRef.current?.(err);
