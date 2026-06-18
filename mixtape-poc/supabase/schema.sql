@@ -89,6 +89,12 @@ drop policy if exists "Creators can update own tapes" on tapes;
 create policy "Creators can update own tapes"
   on tapes for update using (auth.uid() = creator_id);
 
+-- Creators can delete their own tapes (without this, library "delete" is blocked
+-- by RLS and silently does nothing).
+drop policy if exists "Creators can delete own tapes" on tapes;
+create policy "Creators can delete own tapes"
+  on tapes for delete using (auth.uid() = creator_id);
+
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- TAPE RECIPIENTS
@@ -220,12 +226,12 @@ create policy "Users can remove own like"
 
 -- ── COMMENTS ──────────────────────────────────────────────────────────────────
 create table if not exists comments (
-  id         uuid primary key default gen_random_uuid(),
-  tape_id    uuid not null references tapes (id) on delete cascade,
-  user_id    uuid not null references profiles (id) on delete cascade,
-  user_email text,
-  body       text not null,
-  created_at timestamptz not null default now()
+  id          uuid primary key default gen_random_uuid(),
+  tape_id     uuid not null references tapes (id) on delete cascade,
+  user_id     uuid not null references profiles (id) on delete cascade,
+  author_name text,   -- display name only (NEVER the raw email — this table is world-readable)
+  body        text not null,
+  created_at  timestamptz not null default now()
 );
 
 alter table comments enable row level security;

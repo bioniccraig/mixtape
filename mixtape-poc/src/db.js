@@ -126,8 +126,19 @@ export async function saveTape({ tapeName, skin, note, sideA, sideB, creatorId }
 // ── Delete tape ───────────────────────────────────────────────────────────────
 export async function deleteTape(tapeId) {
   if (!supabase) return { error: 'Supabase not configured' };
-  const { error } = await supabase.from('tapes').delete().eq('id', tapeId);
-  return { error: error?.message || null };
+  // `.select()` returns the rows actually deleted. If the database refuses the
+  // delete (e.g. a missing permission rule), there's no error but ZERO rows come
+  // back — so we check that and report it instead of pretending it worked.
+  const { data, error } = await supabase
+    .from('tapes')
+    .delete()
+    .eq('id', tapeId)
+    .select('id');
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Tape wasn't deleted — you may not have permission, or it no longer exists." };
+  }
+  return { error: null };
 }
 
 // ── Delete account (permanent) ────────────────────────────────────────────────
@@ -360,7 +371,7 @@ export async function getComments(tapeId) {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('comments')
-    .select('id, body, created_at, user_id, user_email')
+    .select('id, body, created_at, user_id, author_name')
     .eq('tape_id', tapeId)
     .order('created_at', { ascending: true });
   if (error) throw error;
@@ -369,9 +380,12 @@ export async function getComments(tapeId) {
 
 export async function addComment(tapeId, userId, userEmail, body) {
   if (!supabase) return null;
+  // Privacy: store ONLY a display name (the part before "@"), never the raw email.
+  // The comments table is readable by anyone, so the email must not be persisted.
+  const authorName = (userEmail || '').split('@')[0] || 'Someone';
   const { data, error } = await supabase
     .from('comments')
-    .insert({ tape_id: tapeId, user_id: userId, user_email: userEmail, body: body.trim() })
+    .insert({ tape_id: tapeId, user_id: userId, author_name: authorName, body: body.trim() })
     .select()
     .single();
   if (error) throw error;

@@ -2,14 +2,8 @@
 // Anyone with the link can read comments; you must be signed in to post.
 // Comments appear live via Supabase Realtime (no reload needed).
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useTapeActivity } from './useTapeActivity.js';
-
-// Email → friendly display name: "someone@gmail.com" → "someone"
-function emailToName(email) {
-  if (!email) return 'Someone';
-  return email.split('@')[0];
-}
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -77,7 +71,7 @@ export default function CommentsPanel({ tapeId, user, onSignInRequest }) {
           {comments.map(c => (
             <div key={c.id} className="comment">
               <div className="comment-meta">
-                <span className="comment-author">{emailToName(c.user_email)}</span>
+                <span className="comment-author">{c.author_name || 'Someone'}</span>
                 <span className="comment-time">{timeAgo(c.created_at)}</span>
                 {user && c.user_id === user.id && (
                   <button
