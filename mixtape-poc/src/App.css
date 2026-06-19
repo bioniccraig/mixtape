@@ -1136,12 +1136,10 @@ body {
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   }
   .player-footer-btn {
-    font-size: 11.5px;
-    padding: 9px 5px;
+    font-size: 12px;
+    padding: 9px 6px;
     text-align: center;
   }
-  .footer-label-full  { display: none; }
-  .footer-label-short { display: inline; }
 
   /* Splash: already centred, just tighten font */
   .logo-text  { font-size: 34px; }
@@ -2524,9 +2522,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Footer "Make Your Own" has a long label on desktop, a short one on mobile */
-.footer-label-short { display: none; }
 
 .player-footer-btn:hover {
   background: rgba(255,255,255,0.12);

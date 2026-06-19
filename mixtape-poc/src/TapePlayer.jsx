@@ -590,12 +590,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
             🤝 Community
           </button>
         )}
-        {tape.allowForward && (
-          <button className="player-footer-btn player-footer-make-own" onClick={onMakeOwn}>
-            <span className="footer-label-full">Make Your Own ✦</span>
-            <span className="footer-label-short">✦ Make</span>
-          </button>
-        )}
       </footer>
 
       {/* YouTube version review modal (local-only, not saved to DB) */}
