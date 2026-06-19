@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { searchTracks } from './itunes';
+import { searchTracks, searchGeneral } from './itunes';
 import { matchTrack } from './matching';
 import { TAPE_SKINS, DEFAULT_SKIN, MAX_SIDE_MS } from './constants';
 import CassetteSVG from './Cassette';
@@ -129,6 +129,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [activeSide,   setActiveSide]   = useState('A');
   const [sideA,        setSideA]        = useState(initialTape?.sideA || []);
   const [sideB,        setSideB]        = useState(initialTape?.sideB || []);
+  const [searchAll,    setSearchAll]    = useState('');   // single-box (default)
+  const [advancedSearch, setAdvancedSearch] = useState(false);
   const [searchArtist, setSearchArtist] = useState('');
   const [searchTrack,  setSearchTrack]  = useState('');
   const [searchAlbum,  setSearchAlbum]  = useState('');
@@ -162,7 +164,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [communityLabel, setCommunityLabel] = useState('🤝 Community');
 
   const searchTimer    = useRef(null);
-  const searchArtistRef = useRef(null); // focused when the user taps "Add your first tracks"
+  const searchAllRef    = useRef(null); // single-box; focused on "Add your first tracks"
+  const searchArtistRef = useRef(null); // advanced artist field
 
   // ── Builder funnel analytics ────────────────────────────────────────────────
   const builderLoggedRef = useRef(false); // builder_opened fires once
@@ -284,16 +287,21 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     }
   }
 
-  // ── Search ────────────────────────────────────────────────────────────────
+  // ── Search (single-box general search, or the advanced 3-field) ─────────────
   useEffect(() => {
-    const hasQuery = searchArtist.trim() || searchTrack.trim() || searchAlbum.trim();
-    if (!hasQuery) { setResults([]); return; }
+    const queryLabel = advancedSearch
+      ? [searchTrack, searchArtist, searchAlbum].filter(Boolean).join(' ').trim()
+      : searchAll.trim();
+    if (!queryLabel) { setResults([]); return; }
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const r = await searchTracks({ artist: searchArtist, track: searchTrack, album: searchAlbum });
+        const r = advancedSearch
+          ? await searchTracks({ artist: searchArtist, track: searchTrack, album: searchAlbum })
+          : await searchGeneral(searchAll);
         setResults(r);
+        if (r.length === 0) logBuilder('search_no_results', { q: queryLabel });
       } catch (err) {
         showToast(`${err.name}: ${err.message}`);
         setResults([]);
@@ -301,7 +309,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         setSearching(false);
       }
     }, 400);
-  }, [searchArtist, searchTrack, searchAlbum]);
+  }, [searchAll, searchArtist, searchTrack, searchAlbum, advancedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function showToast(msg) {
     setToast(msg);
@@ -719,7 +727,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                   ? (
                     <button
                       className="btn btn-primary add-first-tracks-btn"
-                      onClick={() => { setMobilePanel('search'); searchArtistRef.current?.focus(); }}
+                      onClick={() => { setMobilePanel('search'); (advancedSearch ? searchArtistRef : searchAllRef).current?.focus(); }}
                     >
                       + Add your first tracks
                     </button>
@@ -748,45 +756,71 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
         {/* ── Right: Search ── */}
         <div className={`panel panel-search ${mobilePanel !== 'search' ? 'mobile-hide' : ''}`}>
           <div className="search-header">
-            <div className="search-fields">
-              <div className="search-field">
-                <label className="search-field-label">Artist</label>
+            {!advancedSearch ? (
+              <div className="search-single">
                 <input
-                  ref={searchArtistRef}
+                  ref={searchAllRef}
                   className="search-input"
-                  value={searchArtist}
-                  onChange={e => setSearchArtist(e.target.value)}
-                  placeholder="e.g. Neil Young"
+                  value={searchAll}
+                  onChange={e => setSearchAll(e.target.value)}
+                  placeholder="Search a song or artist…"
                 />
               </div>
-              <div className="search-field">
-                <label className="search-field-label">Track</label>
-                <input
-                  className="search-input"
-                  value={searchTrack}
-                  onChange={e => setSearchTrack(e.target.value)}
-                  placeholder="e.g. Harvest Moon"
-                />
+            ) : (
+              <div className="search-fields">
+                <div className="search-field">
+                  <label className="search-field-label">Artist</label>
+                  <input
+                    ref={searchArtistRef}
+                    className="search-input"
+                    value={searchArtist}
+                    onChange={e => setSearchArtist(e.target.value)}
+                    placeholder="e.g. Neil Young"
+                  />
+                </div>
+                <div className="search-field">
+                  <label className="search-field-label">Track</label>
+                  <input
+                    className="search-input"
+                    value={searchTrack}
+                    onChange={e => setSearchTrack(e.target.value)}
+                    placeholder="e.g. Harvest Moon"
+                  />
+                </div>
+                <div className="search-field">
+                  <label className="search-field-label">Album</label>
+                  <input
+                    className="search-input"
+                    value={searchAlbum}
+                    onChange={e => setSearchAlbum(e.target.value)}
+                    placeholder="e.g. Harvest"
+                  />
+                </div>
               </div>
-              <div className="search-field">
-                <label className="search-field-label">Album</label>
-                <input
-                  className="search-input"
-                  value={searchAlbum}
-                  onChange={e => setSearchAlbum(e.target.value)}
-                  placeholder="e.g. Harvest"
-                />
-              </div>
-            </div>
+            )}
+            <button
+              type="button"
+              className="search-mode-toggle"
+              onClick={() => setAdvancedSearch(v => !v)}
+            >
+              {advancedSearch ? '← Simple search' : 'Advanced (artist / track / album)'}
+            </button>
             {searching && <span className="searching-spinner">⟳</span>}
           </div>
 
           <div className="track-list">
-            {results.length === 0 && !searching && (
-              <p className="empty-search">
-                {(searchArtist || searchTrack || searchAlbum) ? 'No results found.' : 'Fill in any field above to search…'}
-              </p>
-            )}
+            {results.length === 0 && !searching && (() => {
+              const hasQuery = advancedSearch
+                ? (searchArtist || searchTrack || searchAlbum)
+                : searchAll.trim();
+              return (
+                <p className="empty-search">
+                  {hasQuery
+                    ? 'No matches — check the spelling, or try just the song title or artist.'
+                    : 'Search for a song or artist to add it to your tape…'}
+                </p>
+              );
+            })()}
             {results.map(track => (
               <TrackRow key={track.id} track={track} onAdd={addTrack} disabled={disabled} added={addedSides(track.id)} />
             ))}

@@ -18,6 +18,14 @@ Running log of notable changes. Newest first.
 - **Email-code sign-in (replaces the magic link):** `AuthModal` now verifies a 6–10 digit OTP code in-place (`verifyOtp`) so the user never leaves the page — fixes the magic-link cross-browser/webview context loss. **Requires** `{{ .Token }}` added to the Supabase **Magic Link** + **Confirm signup** email templates.
 - **Example tape on splash:** signed-out visitors get a "▶ See an example tape" button (loads published tape `7450963f`, "Welcome to MixTape"). Controlled by `EXAMPLE_TAPE_SHARE_ID` in `constants.js`.
 
+### Search overhaul
+- **Root cause found (verified live against Deezer):** Deezer's general search is good — `Blink 182` → 191 hits, `Mumford and Sons` → 108 (finds "Mumford & Sons"). The app broke it: typing a band in the **Artist** field routed to `searchByArtist`, whose client-side `exact`/`artistMatch` name checks demanded near-literal equality and dropped everything on "&"/"and" or hyphen/space differences.
+- **Single search box (default):** new `searchGeneral()` sends the whole query to Deezer's general `/search` with **no client-side artist/album filtering** — fixes the "and"/"&" and number/symbol failures (#3, #4) and the one-box ask (#1). The 3-field search is kept behind an **Advanced** toggle.
+- **Punctuation-blind matching:** `normalizeArtist` now maps "&"↔"and", treats hyphens/punctuation as spaces, and collapses whitespace — so even Advanced mode no longer over-filters.
+- **Graceful empty state:** "No matches — check the spelling, or try just the song title or artist" instead of a dead end.
+- **`search_no_results` analytics event** logs the raw failing query (reuses the builder-analytics `logEvent`) so the real failing-query long tail is visible.
+- **Known limitation (#2 typos):** Deezer has no spell-correction (`Little Sims` returns irrelevant "little…" tracks, not Little Simz). Deferred fix: MusicBrainz fuzzy fallback (already in the stack) → correct the name → re-query Deezer.
+
 ### Decisions
 - Rejected localStorage "build-first then sign in" — magic links often open in a different browser than the build context, losing the draft. Solved the underlying problem with in-place OTP instead.
 - Kept gifting-first; deferred social. Activation is the priority over scaling/quota work until the funnel improves.

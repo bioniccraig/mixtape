@@ -6,9 +6,17 @@
 const DEEZER = '/api/deezer-search';
 const lc = s => (s || '').toLowerCase();
 
-// Strip leading "the " for artist comparisons so "Beatles" matches "The Beatles"
+// Normalise a name for comparison so cosmetic differences never filter a result out:
+//   "&" ↔ "and", hyphens/punctuation → spaces, collapse spaces, drop leading "the".
+// This is why "Mumford and Sons" matches "Mumford & Sons" and "blink 182" matches
+// "blink-182" — the differences that broke search before are erased here.
 function normalizeArtist(s) {
-  return lc(s).replace(/^the\s+/, '');
+  return lc(s)
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^the\s+/, '');
 }
 
 // Loose artist match: normalize both sides, then check if either contains the other.
@@ -126,7 +134,22 @@ function searchByQuery(artist, track, album) {
   );
 }
 
-// ── Main export (same signature as before — no changes needed in TapeBuilder) ─
+// ── Single-box general search ─────────────────────────────────────────────────
+// The whole query goes to Deezer's general /search, which is fuzzy + popularity-
+// ranked and handles "&"/"and", numbers and hyphens well on its own. We do NOT
+// apply any client-side artist/album filtering here — that filtering is exactly
+// what used to drop valid results — so we simply trust Deezer's ranking.
+export function searchGeneral(query) {
+  const q = (query || '').replace(/\s+/g, ' ').trim();
+  if (!q) return Promise.resolve([]);
+  return xhr(`${DEEZER}?type=track&q=${encodeURIComponent(q)}`).then(data =>
+    (data.data || [])
+      .filter(t => t.title && t.duration)
+      .map(formatTrack)
+  );
+}
+
+// ── Advanced multi-field export (kept for the optional Advanced search panel) ─
 export function searchTracks({ artist = '', track = '', album = '' } = {}) {
   const a = artist.trim(), t = track.trim(), al = album.trim();
   if (!a && !t && !al) return Promise.resolve([]);

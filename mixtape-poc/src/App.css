@@ -701,6 +701,17 @@ body {
   position: relative;
   flex-shrink: 0;
 }
+.search-single { display: flex; }
+.search-single .search-input { width: 100%; }
+.search-mode-toggle {
+  background: none;
+  border: none;
+  padding: 6px 2px 0;
+  color: #e8623a;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
 .search-fields { display: flex; flex-direction: column; gap: 8px; }
 .search-field { display: flex; flex-direction: column; gap: 4px; }
 .search-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #666; padding-left: 2px; }
