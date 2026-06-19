@@ -311,8 +311,8 @@ begin
   select creator_id, tape_name into v_creator, v_name from tapes where id = new.tape_id;
   if v_creator is null or v_creator = new.user_id then return new; end if;
   insert into notifications (user_id, type, tape_id, from_email, message)
-  values (v_creator, 'comment', new.tape_id, new.user_email,
-          coalesce(new.user_email, 'Someone') || ' commented on "' || coalesce(nullif(v_name, ''), 'your tape') || '"');
+  values (v_creator, 'comment', new.tape_id, new.author_name,
+          coalesce(new.author_name, 'Someone') || ' commented on "' || coalesce(nullif(v_name, ''), 'your tape') || '"');
   return new;
 end; $$;
 
@@ -349,3 +349,21 @@ create trigger on_play_event
 insert into storage.buckets (id, name, public)
 values ('tape-covers', 'tape-covers', true)
 on conflict (id) do nothing;
+
+
+-- ── TABLE GRANTS ──────────────────────────────────────────────────────────────
+-- Tables created via the SQL Editor (as `postgres`) do NOT automatically inherit
+-- the anon/authenticated grants that Supabase applies to dashboard-created tables.
+-- Without these, RLS policies can't take effect and Postgres returns 42501
+-- "permission denied for table ..." (this caused likes to fail — Sentry MIXTAPE-7).
+-- RLS stays enabled above, so these grants only enable the policies; they do not
+-- widen which rows a user may access. Safe to re-run.
+grant usage on schema public to anon, authenticated;
+
+grant select          on table reactions     to anon, authenticated;
+grant insert, delete  on table reactions     to authenticated;
+
+grant select          on table comments      to anon, authenticated;
+grant insert, delete  on table comments      to authenticated;
+
+grant select, update  on table notifications to authenticated;
