@@ -2276,19 +2276,57 @@ body {
   position: relative;
   display: block;
   width: 100%;
-  padding: 0;
   margin: 0 0 -1px;          /* flush — cases touch like a stack */
-  border: none;
-  background: none;
-  cursor: pointer;
   transition: transform 0.12s ease;
 }
 .lib-spine:hover { transform: translateX(5px); z-index: 2; }
+/* The whole case is the "open" button; action icons sit above it on the right. */
+.lib-spine-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
 .lib-spine-img {
   width: 100%;
   display: block;
   border-radius: 0;
 }
+
+/* Compact per-tape action cluster, overlaid on the blank right end of the case */
+.lib-spine-actions {
+  position: absolute;
+  right: 3.5%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 3;
+}
+.lib-spine-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0,0,0,0.14);
+  border-radius: 7px;
+  background: rgba(255,253,247,0.92);
+  color: #2a2622;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: background 0.12s ease, transform 0.1s ease;
+}
+.lib-spine-btn:hover:not(:disabled) { background: #fff; transform: scale(1.08); }
+.lib-spine-btn:disabled { opacity: 0.5; cursor: default; }
+.lib-spine-btn-danger { background: #e8623a; border-color: #c44f2c; color: #fff; }
+.lib-spine-btn-danger:hover:not(:disabled) { background: #d4502a; }
 /* Handwritten label sits on the case's blank label area, clear of the "A" tab */
 .lib-spine-label {
   position: absolute;
