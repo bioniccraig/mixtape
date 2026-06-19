@@ -2,6 +2,26 @@
 
 Running log of notable changes. Newest first.
 
+## 19 June 2026 — metrics, funnel analytics & activation UX
+
+### Metrics & analysis
+- Pulled engagement + activation metrics live from Supabase (via the SQL editor). Headline finding: of **82 signups, only 19 (23%) ever create a tape**; 72 sign in successfully, so the wall is **not** email/auth — **53 (65%) sign in and never build, not even a draft**.
+- Confirmed what the DB can/can't answer: magic-link *sent* and *used* are tracked; email *delivery* (Brevo) and Apple Music connection are **not**; account deletions are hard-deletes with no trail.
+- Saved reusable query `mixtape-poc/supabase/metrics_engagement.sql` (activation funnel + 5 engagement metrics) and a scheduled weekly report logging to `metrics_history.csv`.
+
+### Builder funnel analytics (new)
+- Reuses the existing `events` table — **no schema change**. `db.js` `logEvent` relaxed to allow a null `tapeId` (builder events fire before a tape exists). New `src/session.js` shares `getSessionId` (extracted from `TapePlayer`).
+- `TapeBuilder` now logs `builder_opened`, `first_track_added`, and `signin_prompt_shown` (trigger: cover/save/share). Read via the SQL editor (builder events have null `tape_id`). Spec: `mixtape-poc/supabase/builder_analytics_spec.md`.
+
+### Activation UX
+- **Tape-first builder:** opens on the tape (name/cover/design), not a cold search box (mobile panel defaults to `tape`). Empty tracklist shows a prominent **"+ Add your first tracks"** button that jumps to search and disappears after the first track.
+- **Email-code sign-in (replaces the magic link):** `AuthModal` now verifies a 6–10 digit OTP code in-place (`verifyOtp`) so the user never leaves the page — fixes the magic-link cross-browser/webview context loss. **Requires** `{{ .Token }}` added to the Supabase **Magic Link** + **Confirm signup** email templates.
+- **Example tape on splash:** signed-out visitors get a "▶ See an example tape" button (loads published tape `7450963f`, "Welcome to MixTape"). Controlled by `EXAMPLE_TAPE_SHARE_ID` in `constants.js`.
+
+### Decisions
+- Rejected localStorage "build-first then sign in" — magic links often open in a different browser than the build context, losing the draft. Solved the underlying problem with in-place OTP instead.
+- Kept gifting-first; deferred social. Activation is the priority over scaling/quota work until the funnel improves.
+
 ## 19 June 2026 — maintenance, library redesign & design-uniformity pass
 
 ### Bug fixes
