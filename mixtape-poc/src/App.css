@@ -405,23 +405,21 @@ body {
 .builder {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
-/* ── Builder action footer (fixed — floats at the bottom on all screens, like the player) ── */
+/* ── Builder action footer ── App-shell footer: a normal flex row pinned to the
+   bottom of the column (NOT position:fixed). Because the scrolling area above it
+   is bounded, content can never slide underneath it. */
 .builder-footer {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   background: rgba(245, 229, 204, 0.97);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid rgba(0,0,0,0.10);
-  z-index: 50;
 }
 .builder-footer-btn {
   flex: 1;
@@ -441,15 +439,7 @@ body {
 }
 .builder-footer-btn:hover { background: #fff8ec; }
 
-/* Clear the fixed footer so content isn't hidden behind it. A scroll container's
-   own padding-bottom is dropped by browsers when its flex children overflow, so we
-   reserve the space with a non-shrinking flex spacer (::after) instead.
-   .track-list scrolls on all sizes; .panel-tape scrolls only on desktop. */
-.track-list::after { content: ""; flex: 0 0 88px; }
-
-@media (min-width: 641px) {
-  .panel-tape::after { content: ""; flex: 0 0 88px; }
-}
+/* Footer is an in-flow app-shell row now, so no spacer/padding clearance hacks needed. */
 
 .builder-header {
   display: flex;
@@ -491,6 +481,7 @@ body {
 .builder-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1008,6 +999,7 @@ body {
 .player { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 .player-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   justify-content: center;
@@ -1017,10 +1009,6 @@ body {
 .player-card {
   width: 100%; max-width: 480px;
   display: flex; flex-direction: column; gap: 16px;
-  /* Clearance for the fixed footer. MUST live on the scrolling CONTENT, not on the
-     .player-body scroll container — browsers drop a scroll container's padding-bottom
-     when its flex child overflows, which let long tracklists hide behind the footer. */
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 .player-intro { text-align: center; color: #888; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
 .saved-banner { display: flex; align-items: center; justify-content: space-between; background: rgba(232,98,58,0.15); border: 1px solid rgba(232,98,58,0.3); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #e8623a; }
@@ -1130,16 +1118,7 @@ body {
 
 /* ── Mobile layout ───────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Builder: drop fixed height so page can scroll */
-  .builder {
-    height: auto;
-    min-height: 100svh;
-    overflow: visible;
-    /* Clear the fixed action footer at the bottom of the scrolling page */
-    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* Footer: tighten so 4 buttons fit a phone width */
+  /* Footer: tighten so 4 buttons fit a phone width (app-shell footer, in flow) */
   .builder-footer {
     gap: 6px;
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
@@ -1150,10 +1129,11 @@ body {
     text-align: center;
   }
 
+  /* Builder body stacks the active panel above the footer; the panel scrolls inside. */
   .builder-body {
     flex-direction: column;
-    overflow: visible;
-    height: auto;
+    min-height: 0;
+    overflow: hidden;
   }
 
   /* Show the tab bar */
@@ -1192,23 +1172,27 @@ body {
   /* Hide inactive panel */
   .mobile-hide { display: none !important; }
 
-  /* Tape panel: full width, natural height */
+  /* Active panel fills the body and scrolls inside it (inactive panel is display:none) */
   .panel-tape {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid #2a2a3e;
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
-  /* Search panel: fill remaining screen height */
   .panel-search {
-    overflow: visible;
-    min-height: 60vh;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 
-  /* Track list: scrollable box so results don't push page endlessly */
+  /* Track list fills the search panel and scrolls */
   .track-list {
-    max-height: 60vh;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
   }
 
@@ -2583,20 +2567,14 @@ body {
 
 /* ── Player footer (persistent nav bar) ─────────────────────────────────── */
 .player-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
   /* padding-bottom includes safe-area for notch/home-indicator on iOS */
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   background: rgba(13, 13, 26, 0.97);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid rgba(255,255,255,0.1);
-  z-index: 50;
 }
 
 .player-footer-btn {
