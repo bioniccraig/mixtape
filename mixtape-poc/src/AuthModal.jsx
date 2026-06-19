@@ -61,7 +61,7 @@ export default function AuthModal({ onClose }) {
           <>
             <h2>Enter your code</h2>
             <p className="auth-sub">
-              We emailed a 6-digit code to <strong>{email}</strong>. Enter it below — no password, and no leaving this page.
+              We emailed a code to <strong>{email}</strong>. Enter it below — no password, and no leaving this page.
             </p>
 
             <form onSubmit={verifyCode} className="auth-form">
@@ -70,10 +70,10 @@ export default function AuthModal({ onClose }) {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 className="auth-email-input auth-code-input"
-                placeholder="123456"
+                placeholder="Enter code"
                 value={code}
-                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                maxLength={6}
+                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                maxLength={10}
                 required
                 autoFocus
               />
