@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
+import { setSentryUser } from './sentry';
 
 // Returns { user, loading }
 // user is null when signed out, or a Supabase User object when signed in.
@@ -23,6 +24,9 @@ export function useAuth() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Tag Sentry events with the current user so "users impacted" is meaningful.
+  useEffect(() => { setSentryUser(user); }, [user]);
 
   return { user, loading };
 }

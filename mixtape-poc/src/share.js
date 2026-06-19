@@ -1,19 +1,6 @@
-// Encode / decode tape state to/from a URL-safe base64 hash
-// Format: http://.../#tape=BASE64
-
-function slim(tracks) {
-  // Intentionally omit artwork URL and album — they're long CDN strings that bloat the URL.
-  // TapePlayer re-fetches them from iTunes on load via /api/itunes-lookup.
-  // `y` carries the matched YouTube video id so the recipient can play the full track.
-  return tracks.map(t => ({
-    i:  t.id,
-    ti: t.title,
-    ar: t.artist,
-    d:  t.durationMs,
-    dl: t.durationLabel,
-    ...(t.ytId ? { y: t.ytId } : {}),
-  }));
-}
+// Decode tape state from a legacy URL-safe base64 hash (#tape=BASE64).
+// NOTE: the app no longer GENERATES hash links (all shares are DB-backed /t/SHAREID),
+// but we still decode them so old links shared before the switch keep working.
 
 function inflate(arr) {
   return (arr || []).map(t => ({
@@ -31,15 +18,6 @@ function inflate(arr) {
   }));
 }
 
-// Encode: JSON → UTF-8 bytes → base64
-// Avoids encodeURIComponent which bloats the string 2-3x before base64.
-function toBase64(str) {
-  const bytes = new TextEncoder().encode(str);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 // Decode: base64 → bytes → UTF-8 string
 // Falls back to the old encodeURIComponent format for backwards compatibility.
 function fromBase64(encoded) {
@@ -49,17 +27,6 @@ function fromBase64(encoded) {
   const str = new TextDecoder().decode(bytes);
   // Old format started with '%7B' (URL-encoded '{'); new format starts with '{'
   return str.startsWith('{') ? str : decodeURIComponent(str);
-}
-
-export function encodeTape({ tapeName, theme, sideA, sideB, note }) {
-  const payload = {
-    n:  tapeName || '',
-    t:  theme    || 'yellow',
-    no: note     || '',
-    a:  slim(sideA),
-    b:  slim(sideB),
-  };
-  return toBase64(JSON.stringify(payload));
 }
 
 export function decodeTape(encoded) {
@@ -81,14 +48,6 @@ export function getSharedTape() {
   } catch {
     return null;
   }
-}
-
-export function buildShareUrl({ tapeName, theme, sideA, sideB, note }) {
-  const encoded = encodeTape({ tapeName, theme, sideA, sideB, note });
-  const name    = encodeURIComponent(tapeName || 'A MixTape');
-  // Route through /api/tape so crawlers (WhatsApp, iMessage) see proper OG tags.
-  // Real users are immediately JS-redirected to /#tape= by the serverless function.
-  return `${window.location.origin}/api/tape?n=${name}&d=${encoded}`;
 }
 
 // ── Community share (Reddit r/SayItWithMusic) ─────────────────────────────────

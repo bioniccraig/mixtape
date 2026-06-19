@@ -88,5 +88,18 @@ export function captureHandledError(context, err) {
   });
 }
 
+/**
+ * Attach (or clear) the signed-in user so Sentry's "users impacted" is meaningful
+ * instead of always showing 0. Call with the Supabase user on sign-in, null on sign-out.
+ * id is enough to count unique impacted users; email helps identify who to follow up with.
+ */
+export function setSentryUser(user) {
+  if (user) {
+    Sentry.setUser({ id: user.id, email: user.email });
+  } else {
+    Sentry.setUser(null);
+  }
+}
+
 // Re-export the Sentry namespace so callers can use Sentry.ErrorBoundary etc.
 export { Sentry };
