@@ -357,20 +357,6 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {user && (
             <span className="auth-status-small">{user.email}</span>
           )}
-          <button className="share-btn player-share-btn hide-mobile" onClick={handleShare} title="Share this tape">
-            {shareCopied ? '✓ Copied!' : '⬆ Share'}
-          </button>
-          {canCommunityShare && (
-            <button className="share-btn player-community-share hide-mobile" onClick={handleCommunityShare}
-                    title="Post this tape to the r/SayItWithMusic community">
-              🤝 Share with the Community
-            </button>
-          )}
-          {tape.allowForward && (
-            <button className="share-btn player-make-own-desktop" onClick={onMakeOwn}>
-              Make Your Own ✦
-            </button>
-          )}
         </div>
       </header>
 
