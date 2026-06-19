@@ -371,6 +371,45 @@ body {
   overflow: hidden;
 }
 
+/* ── Builder action footer (fixed — floats at the bottom on all screens, like the player) ── */
+.builder-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(245, 229, 204, 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(0,0,0,0.10);
+  z-index: 50;
+}
+.builder-footer-btn {
+  flex: 1;
+  min-width: 0;
+  background: #fffdf7;
+  border: 1px solid #e6d8ba;
+  border-radius: 8px;
+  color: #2a2622;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s;
+}
+.builder-footer-btn:hover { background: #fff8ec; }
+
+/* Clear the fixed footer so content isn't hidden behind it.
+   Desktop: the two panels scroll internally. Mobile: the whole page scrolls. */
+@media (min-width: 641px) {
+  .panel-tape { padding-bottom: 88px; }
+  .track-list { padding-bottom: 88px; }
+}
+
 .builder-header {
   display: flex;
   align-items: center;
@@ -1055,6 +1094,19 @@ body {
     height: auto;
     min-height: 100svh;
     overflow: visible;
+    /* Clear the fixed action footer at the bottom of the scrolling page */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Footer: tighten so 4 buttons fit a phone width */
+  .builder-footer {
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .builder-footer-btn {
+    font-size: 12px;
+    padding: 9px 6px;
+    text-align: center;
   }
 
   .builder-body {

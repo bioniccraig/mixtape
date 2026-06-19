@@ -552,9 +552,9 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     <div className="builder">
       {/* ── Header ── */}
       <header className="builder-header">
-        <div className="header-logo">
+        <button className="header-logo header-logo-btn" onClick={onBack} title="Back to home">
           <img className="header-wordmark" src="/wordmark.png" alt="MixTape" />
-        </div>
+        </button>
         <div className="header-actions">
           {user ? (
             <>
@@ -572,41 +572,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
               Sign in
             </button>
           )}
-          {hasTracks && user && (
-            <button className="save-btn hide-mobile" onClick={handleSave} title="Save as draft">
-              {saveLabel}
-            </button>
-          )}
-          {hasTracks && (
-            <button className="native-share-btn hide-mobile" onClick={handleNativeShare} title="Share">
-              {nativeLabel}
-            </button>
-          )}
-          {hasTracks && (
-            <button className="native-share-btn community-share-btn hide-mobile" onClick={handleCommunityShare}
-                    title="Publish and post to the r/SayItWithMusic community">
-              {communityLabel}
-            </button>
-          )}
-          <button className="logout-btn hide-mobile" onClick={onBack}>← Back</button>
         </div>
       </header>
-
-      {/* ── Mobile bottom action bar ── */}
-      <div className="mobile-action-bar">
-        <button className="mob-back-btn" onClick={onBack}>← Back</button>
-        {hasTracks && user && (
-          <button className="save-btn" onClick={handleSave}>{saveLabel}</button>
-        )}
-        {hasTracks && (
-          <button className="native-share-btn" onClick={handleNativeShare}>{nativeLabel}</button>
-        )}
-        {hasTracks && (
-          <button className="native-share-btn community-share-btn" onClick={handleCommunityShare}>
-            {communityLabel}
-          </button>
-        )}
-      </div>
 
       <div className="builder-body">
         {/* ── Mobile tab bar (hidden on desktop via CSS) ── */}
@@ -819,6 +786,21 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
           </div>
         </div>
       </div>
+
+      {/* ── Fixed action footer (floats at the bottom on all screens, like the player) ── */}
+      <footer className="builder-footer">
+        <button className="builder-footer-btn" onClick={onBack}>← Back</button>
+        {hasTracks && user && (
+          <button className="builder-footer-btn" onClick={handleSave} title="Save as draft">{saveLabel}</button>
+        )}
+        {hasTracks && (
+          <button className="builder-footer-btn" onClick={handleNativeShare} title="Share">{nativeLabel}</button>
+        )}
+        {hasTracks && (
+          <button className="builder-footer-btn" onClick={handleCommunityShare}
+                  title="Publish and post to the r/SayItWithMusic community">{communityLabel}</button>
+        )}
+      </footer>
 
       {reviewingTrack && (
         <MatchModal
