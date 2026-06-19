@@ -43,8 +43,8 @@ export default function LibrarySpine({
   const badge   = kind === 'draft' ? 'Draft' : '';
 
   // Per-kind "open" affordance + destructive action
-  const openLabel = kind === 'draft' ? 'Edit' : kind === 'received' ? 'Play' : 'Open';
-  const openIcon  = kind === 'draft' ? '✏' : kind === 'received' ? '▶' : '📂';
+  const openLabel = kind === 'draft' ? 'Edit' : 'Open';
+  const openIcon  = kind === 'draft' ? '✏' : '📂';
   const destructive = kind === 'received'
     ? { label: 'Remove from my library', icon: '🗑', confirm: 'Remove this tape from your library?', verb: 'remove', run: () => onRemove(tape) }
     : { label: 'Delete tape',            icon: '🗑', confirm: 'Delete this tape permanently?',       verb: 'delete', run: () => onDelete(tape) };

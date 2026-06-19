@@ -357,11 +357,11 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {user && (
             <span className="auth-status-small">{user.email}</span>
           )}
-          <button className="share-btn player-share-btn" onClick={handleShare} title="Share this tape">
+          <button className="share-btn player-share-btn hide-mobile" onClick={handleShare} title="Share this tape">
             {shareCopied ? '✓ Copied!' : '⬆ Share'}
           </button>
           {canCommunityShare && (
-            <button className="share-btn player-community-share" onClick={handleCommunityShare}
+            <button className="share-btn player-community-share hide-mobile" onClick={handleCommunityShare}
                     title="Post this tape to the r/SayItWithMusic community">
               🤝 Share with the Community
             </button>
@@ -592,7 +592,8 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
         )}
         {tape.allowForward && (
           <button className="player-footer-btn player-footer-make-own" onClick={onMakeOwn}>
-            Make Your Own ✦
+            <span className="footer-label-full">Make Your Own ✦</span>
+            <span className="footer-label-short">✦ Make</span>
           </button>
         )}
       </footer>

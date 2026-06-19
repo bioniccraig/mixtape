@@ -1130,6 +1130,19 @@ body {
     padding: 10px 14px;
   }
 
+  /* Player footer: size buttons to fit the screen (no overflow), short labels */
+  .player-footer {
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .player-footer-btn {
+    font-size: 11.5px;
+    padding: 9px 5px;
+    text-align: center;
+  }
+  .footer-label-full  { display: none; }
+  .footer-label-short { display: inline; }
+
   /* Splash: already centred, just tighten font */
   .logo-text  { font-size: 34px; }
   .logo-icon  { font-size: 38px; }
@@ -2497,6 +2510,7 @@ body {
 
 .player-footer-btn {
   flex: 1;
+  min-width: 0;                /* allow buttons to shrink instead of overflowing */
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px;
@@ -2507,7 +2521,12 @@ body {
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Footer "Make Your Own" has a long label on desktop, a short one on mobile */
+.footer-label-short { display: none; }
 
 .player-footer-btn:hover {
   background: rgba(255,255,255,0.12);
