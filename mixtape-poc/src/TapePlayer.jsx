@@ -12,6 +12,7 @@ import MatchModal from './MatchModal';
 import AppleMatchModal from './AppleMatchModal';
 import AppHeader from './AppHeader';
 import { logEvent, getTapeId } from './db';
+import { getSessionId } from './session';
 import { searchYouTube } from './matching';
 import { buildCommunityShareUrl } from './share';
 
@@ -44,17 +45,6 @@ function PlayerBadge({ track, engine, onClick }) {
   );
 }
 
-// Generate (or reuse) a session UUID stored in sessionStorage.
-// Groups multiple events from the same browser session together in analytics.
-function getSessionId() {
-  const key = 'mixtape_session_id';
-  let id = sessionStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID();
-    sessionStorage.setItem(key, id);
-  }
-  return id;
-}
 
 export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, user, onSignInRequest }) {
   const [tracksA,   setTracksA]   = useState(tape.sideA);

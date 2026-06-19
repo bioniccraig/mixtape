@@ -419,8 +419,9 @@ export async function deleteComment(commentId) {
 
 
 // ── Log analytics event ───────────────────────────────────────────────────────
-export async function logEvent({ tapeId, eventType, sessionId, viewerId = null, metadata = {} }) {
-  if (!supabase || !tapeId) return;
+export async function logEvent({ tapeId = null, eventType, sessionId, viewerId = null, metadata = {} }) {
+  // tapeId may be null — builder-funnel events fire before a tape row exists.
+  if (!supabase || !eventType) return;
   await supabase.from('events').insert({
     tape_id:    tapeId,
     event_type: eventType,

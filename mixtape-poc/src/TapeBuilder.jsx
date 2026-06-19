@@ -8,7 +8,8 @@ import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
-import { upsertTape, uploadCoverPhoto } from './db';
+import { upsertTape, uploadCoverPhoto, logEvent } from './db';
+import { getSessionId } from './session';
 import AppHeader from './AppHeader';
 import { buildCommunityShareUrl } from './share';
 import { findAppleMatch } from './appleMatch';
@@ -162,6 +163,18 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
   const searchTimer = useRef(null);
 
+  // ── Builder funnel analytics ────────────────────────────────────────────────
+  const builderLoggedRef = useRef(false); // builder_opened fires once
+  const firstTrackRef    = useRef(false); // first_track_added fires once
+  const logBuilder = (eventType, metadata = {}) =>
+    logEvent({ tapeId: dbTapeId, eventType, sessionId: getSessionId(), viewerId: user?.id ?? null, metadata });
+
+  useEffect(() => {
+    if (builderLoggedRef.current) return; // guard StrictMode double-mount
+    builderLoggedRef.current = true;
+    logBuilder('builder_opened', { from_initial: !!initialTape });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const sideAMs = sideA.reduce((t, x) => t + x.durationMs, 0);
   const sideBMs = sideB.reduce((t, x) => t + x.durationMs, 0);
 
@@ -300,7 +313,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   // Cover photo upload handler
   async function handleCoverPhoto(file) {
     if (!file) { setCoverImageUrl(null); return; }
-    if (!user) { onSignInRequest(); return; }
+    if (!user) { logBuilder('signin_prompt_shown', { trigger: 'cover' }); onSignInRequest(); return; }
     const MAX_MB = 15;
     if (file.size > MAX_MB * 1024 * 1024) {
       showToast(`File too large — please pick an image under ${MAX_MB} MB`);
@@ -387,6 +400,10 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     else              setSideB(p => [...p, withMatch]);
     setActiveSide(side);
     showToast(`Added "${track.title}" to Side ${side}`);
+    if (!firstTrackRef.current) {
+      firstTrackRef.current = true;
+      logBuilder('first_track_added', { side, source: 'search' });
+    }
     resolveMatch(track, side);
     resolveAppleMatch(track, side);
   }
@@ -454,7 +471,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
   // ── Save (draft) ────────────────────────────────────────────────────────────
   async function handleSave() {
-    if (!user) { onSignInRequest(); return; }
+    if (!user) { logBuilder('signin_prompt_shown', { trigger: 'save' }); onSignInRequest(); return; }
     setSaveLabel('Saving…');
     const { id, shareId: sid, error } = await upsertTape({
       id: dbTapeId, tapeName, skin, note, sideA, sideB,
@@ -493,6 +510,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
       if (!ok) return null;
     }
     if (!user) {
+      logBuilder('signin_prompt_shown', { trigger: 'share' });
       onSignInRequest();
       showToast('Sign in to share your tape.');
       return null;
