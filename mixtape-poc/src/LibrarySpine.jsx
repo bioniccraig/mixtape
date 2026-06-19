@@ -1,11 +1,11 @@
 // LibrarySpine — one cassette-case "spine" row used by BOTH the home shelf
-// (InlineLibrary) and the Library modal (MyLibrary), so the look + actions stay
-// identical. Tapping the spine opens the tape; a compact action cluster on the
-// right handles the per-type actions that used to live on the old library cards.
+// (InlineLibrary) and the Library modal (MyLibrary). The spine itself is a clean
+// cassette; TAPPING it opens an action menu (bottom sheet on mobile, centred
+// popover on desktop) so the shelf stays uncluttered.
 //
-//   kind='sent'     → 🔗 copy link · ⎘ duplicate · 🗑 delete   (tap = preview)
-//   kind='draft'    → 🗑 delete                                (tap = edit)
-//   kind='received' → (no actions)                             (tap = play)
+//   kind='sent'     → Open · Copy link · Duplicate · Delete
+//   kind='draft'    → Edit · Delete
+//   kind='received' → Play · Remove from my library
 
 import { useState } from 'react';
 
@@ -29,8 +29,9 @@ function trackCount(tape) {
 
 export default function LibrarySpine({
   tape, kind, likeCount = 0,
-  onOpen, onCopyLink, onDuplicate, onDelete,
+  onOpen, onCopyLink, onDuplicate, onDelete, onRemove,
 }) {
+  const [menuOpen,    setMenuOpen]    = useState(false);
   const [copied,      setCopied]      = useState(false);
   const [confirming,  setConfirming]  = useState(false);
   const [duplicating, setDuplicating] = useState(false);
@@ -41,25 +42,38 @@ export default function LibrarySpine({
   const date    = formatDate(tape.updated_at || tape.created_at);
   const badge   = kind === 'draft' ? 'Draft' : '';
 
-  function copy(e) {
-    e.stopPropagation();
+  // Per-kind "open" affordance + destructive action
+  const openLabel = kind === 'draft' ? 'Edit' : kind === 'received' ? 'Play' : 'Open';
+  const openIcon  = kind === 'draft' ? '✏' : kind === 'received' ? '▶' : '📂';
+  const destructive = kind === 'received'
+    ? { label: 'Remove from my library', icon: '🗑', confirm: 'Remove this tape from your library?', verb: 'remove', run: () => onRemove(tape) }
+    : { label: 'Delete tape',            icon: '🗑', confirm: 'Delete this tape permanently?',       verb: 'delete', run: () => onDelete(tape) };
+
+  function close() { setMenuOpen(false); setConfirming(false); setCopied(false); }
+
+  function handleOpen() { onOpen(tape); close(); }
+
+  function handleCopy() {
     onCopyLink(tape);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(close, 900);
   }
 
-  async function dupe(e) {
-    e.stopPropagation();
+  async function handleDuplicate() {
     setDuplicating(true);
     await onDuplicate(tape);
     setDuplicating(false);
+    close();
   }
 
-  const hasActions = kind === 'sent' || kind === 'draft';
+  function handleDestructive() {
+    destructive.run();
+    close();
+  }
 
   return (
-    <div className="lib-spine">
-      <button className="lib-spine-open" onClick={() => onOpen(tape)} title={name}>
+    <>
+      <button className="lib-spine" onClick={() => setMenuOpen(true)} title={name}>
         <img className="lib-spine-img" src={`/cases/case${caseNum}.jpg`} alt="" />
         <span className="lib-spine-label">
           <span className="lib-spine-name">{name}</span>
@@ -72,33 +86,51 @@ export default function LibrarySpine({
         </span>
       </button>
 
-      {/* Always render the column (even when empty for received tapes) so every
-          cassette keeps the same width and the shelf stays aligned. */}
-      <div className="lib-spine-actions" onClick={e => e.stopPropagation()}>
-        {hasActions && (confirming ? (
-          <>
-            <button className="lib-spine-btn lib-spine-btn-danger"
-                    onClick={() => onDelete(tape)} title="Confirm delete">✓</button>
-            <button className="lib-spine-btn"
-                    onClick={() => setConfirming(false)} title="Cancel">✕</button>
-          </>
-        ) : (
-          <>
-            {kind === 'sent' && (
-              <>
-                <button className="lib-spine-btn" onClick={copy} title="Copy share link">
-                  {copied ? '✓' : '🔗'}
+      {menuOpen && (
+        <div className="lib-sheet-overlay" onClick={close}>
+          <div className="lib-sheet" onClick={e => e.stopPropagation()} role="menu">
+            <div className="lib-sheet-head">
+              <span className="lib-sheet-title">{name}</span>
+              <span className="lib-sheet-sub">
+                {count} track{count !== 1 ? 's' : ''}{badge && ` · ${badge}`}{date && ` · ${date}`}
+              </span>
+            </div>
+
+            <div className="lib-sheet-items">
+              <button className="lib-sheet-item" onClick={handleOpen}>
+                <span className="lib-sheet-ico">{openIcon}</span> {openLabel}
+              </button>
+
+              {kind === 'sent' && (
+                <>
+                  <button className="lib-sheet-item" onClick={handleCopy}>
+                    <span className="lib-sheet-ico">🔗</span> {copied ? 'Link copied!' : 'Copy share link'}
+                  </button>
+                  <button className="lib-sheet-item" onClick={handleDuplicate} disabled={duplicating}>
+                    <span className="lib-sheet-ico">⎘</span> {duplicating ? 'Duplicating…' : 'Duplicate as draft'}
+                  </button>
+                </>
+              )}
+
+              {confirming ? (
+                <div className="lib-sheet-confirm">
+                  <span className="lib-sheet-confirm-q">{destructive.confirm}</span>
+                  <button className="lib-sheet-item lib-sheet-item-danger" onClick={handleDestructive}>
+                    Yes, {destructive.verb}
+                  </button>
+                  <button className="lib-sheet-item" onClick={() => setConfirming(false)}>Cancel</button>
+                </div>
+              ) : (
+                <button className="lib-sheet-item lib-sheet-item-danger" onClick={() => setConfirming(true)}>
+                  <span className="lib-sheet-ico">{destructive.icon}</span> {destructive.label}
                 </button>
-                <button className="lib-spine-btn" onClick={dupe} disabled={duplicating}
-                        title="Duplicate as draft">
-                  {duplicating ? '…' : '⎘'}
-                </button>
-              </>
-            )}
-            <button className="lib-spine-btn" onClick={() => setConfirming(true)} title="Delete">🗑</button>
-          </>
-        ))}
-      </div>
-    </div>
+              )}
+            </div>
+
+            <button className="lib-sheet-cancel" onClick={close}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

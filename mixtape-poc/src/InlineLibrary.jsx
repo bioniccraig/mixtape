@@ -3,7 +3,7 @@
 // own action cluster (shared with the Library modal via LibrarySpine).
 
 import { useEffect, useState } from 'react';
-import { loadMyTapes, getReceivedTapes, getReactionCounts, deleteTape, duplicateTape } from './db';
+import { loadMyTapes, getReceivedTapes, getReactionCounts, deleteTape, duplicateTape, hideReceivedTape } from './db';
 import LibrarySpine from './LibrarySpine';
 
 function shareUrl(shareId) {
@@ -42,6 +42,12 @@ export default function InlineLibrary({ user, onPlay, onEdit }) {
     const { id, error } = await duplicateTape(tape, user.id);
     if (error) { alert(`Couldn't duplicate: ${error}`); return; }
     onEdit({ id });
+  }
+
+  async function handleRemoveReceived(tape) {
+    const { error } = await hideReceivedTape(user.id, tape.id);
+    if (error) { alert(`Couldn't remove: ${error}`); return; }
+    setReceived(prev => prev.filter(t => t.id !== tape.id));
   }
 
   const sent   = myTapes.filter(t => t.status === 'published');
@@ -103,6 +109,7 @@ export default function InlineLibrary({ user, onPlay, onEdit }) {
               tape={tape}
               kind="received"
               onOpen={onPlay}
+              onRemove={handleRemoveReceived}
             />
           ))}
         </section>

@@ -233,13 +233,32 @@ export async function getReceivedTapes(userId) {
 
   if (error) return { tapes: [], error: error.message };
 
+  // Tapes this user has removed from their library ("Remove from my library")
+  const { data: hidden } = await supabase
+    .from('hidden_received_tapes')
+    .select('tape_id')
+    .eq('user_id', userId);
+  const hiddenIds = new Set((hidden || []).map(h => h.tape_id));
+
   // Deduplicate by tape id (user may have opened same tape multiple times)
   const seen = new Set();
   const tapes = (data || [])
     .map(row => row.tape)
-    .filter(t => t && t.creator_id !== userId && !seen.has(t.id) && seen.add(t.id));
+    .filter(t => t && t.creator_id !== userId && !hiddenIds.has(t.id) && !seen.has(t.id) && seen.add(t.id));
 
   return { tapes, error: null };
+}
+
+// ── Remove a received tape from MY library (hide; doesn't delete the creator's tape) ──
+export async function hideReceivedTape(userId, tapeId) {
+  if (!supabase) return { error: 'Supabase not configured' };
+  if (!userId || !tapeId) return { error: 'Missing user or tape id' };
+  const { error } = await supabase
+    .from('hidden_received_tapes')
+    .insert({ user_id: userId, tape_id: tapeId });
+  // A duplicate hide (already removed) is fine — treat as success.
+  if (error && error.code !== '23505') return { error: error.message };
+  return { error: null };
 }
 
 

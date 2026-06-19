@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts, duplicateTape } from './db';
+import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts, duplicateTape, hideReceivedTape } from './db';
 import LibrarySpine from './LibrarySpine';
 
 function shareUrl(shareId) {
@@ -53,6 +53,12 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
     if (err) { alert(`Couldn't duplicate: ${err}`); return; }
     onEdit({ id });
     onClose();
+  }
+
+  async function handleRemoveReceived(tape) {
+    const { error: err } = await hideReceivedTape(user.id, tape.id);
+    if (err) { alert(`Couldn't remove: ${err}`); return; }
+    setReceived(prev => prev.filter(t => t.id !== tape.id));
   }
 
   const sent   = myTapes.filter(t => t.status === 'published');
@@ -135,6 +141,7 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
                     tape={tape}
                     kind="received"
                     onOpen={t => { onPlay(t); onClose(); }}
+                    onRemove={handleRemoveReceived}
                   />
                 ))
               }

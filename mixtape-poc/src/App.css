@@ -2272,69 +2272,127 @@ body {
 }
 
 /* ── Library cassette-case spines (shelf view) ──────────────────────────── */
+/* Clean cassette — the whole spine is one button; tapping it opens the action
+   menu (.lib-sheet). No inline buttons, so the shelf stays uncluttered. */
 .lib-spine {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  margin: 0 0 -1px;          /* flush — cases touch like a stack */
-  transition: transform 0.12s ease;
-}
-.lib-spine:hover { transform: translateX(5px); z-index: 2; }
-/* The cassette case is the "open" button; actions sit in a column to its RIGHT. */
-.lib-spine-open {
-  position: relative;        /* the handwritten label is positioned over the art */
-  flex: 1;
-  min-width: 0;
+  position: relative;
   display: block;
+  width: 100%;
   padding: 0;
-  margin: 0;
+  margin: 0 0 -1px;          /* flush — cases touch like a stack */
   border: none;
   background: none;
   cursor: pointer;
+  transition: transform 0.12s ease;
 }
+.lib-spine:hover { transform: translateX(5px); z-index: 2; }
 .lib-spine-img {
   width: 100%;
   display: block;
   border-radius: 0;
 }
 
-/* Fixed-width action column to the right of the case. Reserved on EVERY row
-   (even empty, for received tapes) so all cassettes keep the same width. */
-.lib-spine-actions {
-  flex-shrink: 0;
-  width: 102px;
+/* ── Library action menu (tap a cassette) ───────────────────────────────── */
+/* Bottom sheet on mobile, centred popover on desktop. */
+.lib-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;             /* above the library modal (.modal-overlay) */
+  background: rgba(20, 16, 12, 0.45);
+  display: flex;
+  align-items: flex-end;     /* bottom sheet on mobile */
+  justify-content: center;
+  padding: 0;
+  animation: lib-sheet-fade 0.15s ease;
+}
+@keyframes lib-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.lib-sheet {
+  width: 100%;
+  max-width: 460px;
+  background: #f5efe2;
+  border-radius: 16px 16px 0 0;
+  padding: 10px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.30);
+  animation: lib-sheet-up 0.18s ease;
+}
+@keyframes lib-sheet-up { from { transform: translateY(16px); } to { transform: translateY(0); } }
+
+.lib-sheet-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  margin-bottom: 8px;
+}
+.lib-sheet-title {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
+  color: #1f1d1b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lib-sheet-sub { font-family: var(--mono); font-size: 11px; color: #6a6055; }
+
+.lib-sheet-items { display: flex; flex-direction: column; gap: 4px; }
+.lib-sheet-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding-left: 8px;
-}
-.lib-spine-btn {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(0,0,0,0.14);
-  border-radius: 7px;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: none;
+  border-radius: 10px;
   background: #fffdf7;
   color: #2a2622;
-  font-size: 13px;
-  line-height: 1;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.10);
-  transition: background 0.12s ease, transform 0.1s ease;
+  transition: background 0.12s ease;
 }
-.lib-spine-btn:hover:not(:disabled) { background: #fff; transform: scale(1.08); }
-.lib-spine-btn:disabled { opacity: 0.5; cursor: default; }
-.lib-spine-btn-danger { background: #e8623a; border-color: #c44f2c; color: #fff; }
-.lib-spine-btn-danger:hover:not(:disabled) { background: #d4502a; }
+.lib-sheet-item:hover:not(:disabled) { background: #fff8ec; }
+.lib-sheet-item:disabled { opacity: 0.55; cursor: default; }
+.lib-sheet-ico { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
+.lib-sheet-item-danger { color: #c4381c; }
+.lib-sheet-item-danger:hover:not(:disabled) { background: rgba(232,98,58,0.10); }
 
-/* Narrow screens: trim the column so the cassette keeps usable width */
-@media (max-width: 480px) {
-  .lib-spine-actions { width: 96px; gap: 4px; padding-left: 6px; }
-  .lib-spine-btn { width: 27px; height: 27px; }
+.lib-sheet-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(232,98,58,0.08);
 }
+.lib-sheet-confirm-q {
+  font-size: 13px;
+  color: #8a4a38;
+  padding: 4px 6px 2px;
+}
+
+.lib-sheet-cancel {
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: #e7dcc6;
+  color: #2a2622;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lib-sheet-cancel:hover { background: #ded2b8; }
+
+/* Desktop: centre the sheet as a popover rather than a bottom sheet */
+@media (min-width: 640px) {
+  .lib-sheet-overlay { align-items: center; padding: 20px; }
+  .lib-sheet { border-radius: 16px; }
+}
+
 /* Handwritten label sits on the case's blank label area, clear of the "A" tab */
 .lib-spine-label {
   position: absolute;
