@@ -8,11 +8,11 @@ import MatchModal from './MatchModal';
 import { useYouTube } from './useYouTube';
 import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
-import { upsertTape, uploadCoverPhoto, loadTapeById } from './db';
+import { upsertTape, uploadCoverPhoto } from './db';
+import AppHeader from './AppHeader';
 import { buildCommunityShareUrl } from './share';
 import { findAppleMatch } from './appleMatch';
 import AppleMatchModal from './AppleMatchModal';
-import NotificationBell from './NotificationBell';
 import FrontCover from './FrontCover';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -551,29 +551,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   return (
     <div className="builder">
       {/* ── Header ── */}
-      <header className="builder-header">
-        <button className="header-logo header-logo-btn" onClick={onBack} title="Back to home">
-          <img className="header-wordmark" src="/wordmark.png" alt="MixTape" />
-        </button>
-        <div className="header-actions">
-          {user ? (
-            <>
-              <NotificationBell user={user} onOpenTape={async id => {
-                const { tape: t } = await loadTapeById(id);
-                if (t && onBack) { onBack(); setTimeout(() => window.location.assign(`/t/${t.shareId}`), 50); }
-              }} />
-              <button className="btn btn-secondary btn-sm" onClick={onOpenLibrary} title="My Library">
-                📼 Library
-              </button>
-              <span className="auth-status-small">{user.email}</span>
-            </>
-          ) : (
-            <button className="btn btn-ghost btn-sm" onClick={onSignInRequest} title="Sign in to save tapes">
-              Sign in
-            </button>
-          )}
-        </div>
-      </header>
+      <AppHeader user={user} onHome={onBack} onSignInRequest={onSignInRequest} onOpenLibrary={onOpenLibrary} />
 
       <div className="builder-body">
         {/* ── Mobile tab bar (hidden on desktop via CSS) ── */}

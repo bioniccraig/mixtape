@@ -10,8 +10,8 @@ import { useAppleMusic } from './useAppleMusic';
 import EngineToggle from './EngineToggle';
 import MatchModal from './MatchModal';
 import AppleMatchModal from './AppleMatchModal';
-import NotificationBell from './NotificationBell';
-import { logEvent, getTapeId, loadTapeById } from './db';
+import AppHeader from './AppHeader';
+import { logEvent, getTapeId } from './db';
 import { searchYouTube } from './matching';
 import { buildCommunityShareUrl } from './share';
 
@@ -342,23 +342,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   return (
     <div className="player">
       {/* ── Header ── */}
-      <header className="builder-header">
-        <button className="header-logo header-logo-btn" onClick={onMakeOwn} title="Back to home">
-          <img className="header-wordmark" src="/wordmark.png" alt="MixTape" />
-        </button>
-        <div className="header-actions">
-          {!user && onSignInRequest && (
-            <button className="btn btn-ghost btn-sm" onClick={onSignInRequest}>Sign in / Sign up</button>
-          )}
-          {user && <NotificationBell user={user} onOpenTape={async id => {
-            const { tape: t } = await loadTapeById(id);
-            if (t) { onMakeOwn(); setTimeout(() => window.location.assign(`/t/${t.shareId}`), 50); }
-          }} />}
-          {user && (
-            <span className="auth-status-small">{user.email}</span>
-          )}
-        </div>
-      </header>
+      <AppHeader user={user} onHome={onMakeOwn} onSignInRequest={onSignInRequest} />
 
       <div className="player-body">
         <div className="player-card">
