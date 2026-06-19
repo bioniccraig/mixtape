@@ -181,6 +181,7 @@ body {
   letter-spacing: 0.5px;
 }
 .btn-start:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(232,98,58,0.4); }
+.example-tape-btn { margin-top: 12px; }
 
 .splash-email-hint {
   font-size: 0.78rem;
@@ -353,6 +354,22 @@ body {
 
 .auth-modal h2 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
 .auth-sub { font-size: 14px; color: #9a9aa6; margin-bottom: 20px; }
+.auth-code-input {
+  text-align: center;
+  letter-spacing: 0.4em;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.auth-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #e8623a;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.auth-link-btn:disabled { opacity: 0.5; cursor: default; }
 
 .auth-form { display: flex; flex-direction: column; gap: 12px; }
 .auth-email-input {
@@ -608,6 +625,14 @@ body {
   font-size: 13px;
   padding: 24px 0;
   font-style: italic;
+}
+
+/* First-run nudge in the empty tracklist — guides a new user to their first action. */
+.add-first-tracks-btn {
+  display: block;
+  margin: 20px auto;
+  font-size: 15px;
+  padding: 12px 22px;
 }
 
 .tape-track {

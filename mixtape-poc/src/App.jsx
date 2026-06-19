@@ -7,6 +7,7 @@ import MyLibrary     from './MyLibrary';
 import InlineLibrary from './InlineLibrary';
 import Legal         from './Legal';
 import { getSharedTape } from './share';
+import { EXAMPLE_TAPE_SHARE_ID } from './constants';
 import { loadTapeByShareId, loadTapeById, recordTapeView, deleteAccount } from './db';
 import { useAuth } from './useAuth';
 import { supabase } from './supabase';
@@ -80,6 +81,15 @@ export default function App() {
   // ── Sign out ──────────────────────────────────────────────────────────────
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
+  }
+
+  // ── Open the splash "example" tape in the player (signed-out preview) ─────
+  async function openExampleTape() {
+    if (!EXAMPLE_TAPE_SHARE_ID) return;
+    const { tape: t, error } = await loadTapeByShareId(EXAMPLE_TAPE_SHARE_ID);
+    if (error || !t) { alert("Couldn't load the example tape"); return; }
+    setTape(t);
+    setView('player');
   }
 
   // ── Open a tape from the library in the player ────────────────────────────
@@ -266,6 +276,11 @@ export default function App() {
       <button className="btn-start" onClick={() => setShowAuth(true)}>
         Sign in / Sign up
       </button>
+      {EXAMPLE_TAPE_SHARE_ID && (
+        <button className="btn btn-ghost example-tape-btn" onClick={openExampleTape}>
+          ▶ See an example tape
+        </button>
+      )}
       <p className="splash-email-hint">Sign in with just your email address — no password needed</p>
       <p className="disclaimer">Create, Personalise, Share</p>
 

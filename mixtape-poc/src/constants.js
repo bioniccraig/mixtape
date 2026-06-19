@@ -41,6 +41,12 @@ export const TAPE_SKINS = [
 
 export const DEFAULT_SKIN = 'rainbow';
 
+// Splash "See an example" tape. Set this to the 8-char shareId of a published
+// tape (the bit after /t/ in its share link) to show a "▶ See an example tape"
+// button on the splash so first-time visitors can feel the gifting moment
+// before signing up. Leave null to hide the button.
+export const EXAMPLE_TAPE_SHARE_ID = '7450963f';
+
 export function getSkin(id) {
   return TAPE_SKINS.find(s => s.id === id) || TAPE_SKINS[0];
 }

@@ -161,7 +161,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
   const [nativeLabel, setNativeLabel] = useState('Share 📤');
   const [communityLabel, setCommunityLabel] = useState('🤝 Community');
 
-  const searchTimer = useRef(null);
+  const searchTimer    = useRef(null);
+  const searchArtistRef = useRef(null); // focused when the user taps "Add your first tracks"
 
   // ── Builder funnel analytics ────────────────────────────────────────────────
   const builderLoggedRef = useRef(false); // builder_opened fires once
@@ -558,7 +559,8 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setCommunityLabel('🤝 Community');
   }
 
-  const [mobilePanel, setMobilePanel] = useState('search');
+  // Open on the tape itself (name/cover/design) rather than a cold search box.
+  const [mobilePanel, setMobilePanel] = useState('tape');
 
   const trackList        = activeSide === 'A' ? sideA : sideB;
   const disabled         = { A: sideAMs >= MAX_SIDE_MS, B: sideBMs >= MAX_SIDE_MS };
@@ -713,7 +715,16 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
           <div className="tape-tracklist">
             {trackList.length === 0
-              ? <p className="empty-side">Side {activeSide} is empty — search for tracks to add</p>
+              ? (!hasTracks
+                  ? (
+                    <button
+                      className="btn btn-primary add-first-tracks-btn"
+                      onClick={() => { setMobilePanel('search'); searchArtistRef.current?.focus(); }}
+                    >
+                      + Add your first tracks
+                    </button>
+                  )
+                  : <p className="empty-side">Side {activeSide} is empty — search for tracks to add</p>)
               : trackList.map((t, i) => (
                 <TapeTrack
                   key={t.id + i}
@@ -741,11 +752,11 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
               <div className="search-field">
                 <label className="search-field-label">Artist</label>
                 <input
+                  ref={searchArtistRef}
                   className="search-input"
                   value={searchArtist}
                   onChange={e => setSearchArtist(e.target.value)}
                   placeholder="e.g. Neil Young"
-                  autoFocus
                 />
               </div>
               <div className="search-field">
