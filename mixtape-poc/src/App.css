@@ -718,6 +718,12 @@ body {
 .add-btn:disabled { opacity: 0.3; cursor: default; }
 .add-btn-b { background: #3a86ff; }
 
+/* Already-added tracks: ✓ on the side it's on + a subtle row tint so it's
+   obvious at a glance which search results are already on the tape. */
+.add-btn.added { background: #2a9d5c; }
+.track-row-added { background: rgba(42, 157, 92, 0.10); }
+.track-row-added:hover { background: rgba(42, 157, 92, 0.16); }
+
 /* ── Attention panel (unmatched tracks before share) ───────────────── */
 .attention-overlay {
   position: fixed; inset: 0;
@@ -2570,6 +2576,9 @@ body {
 .builder .track-dur { color: #a89e8c; }
 /* add-btn keeps its orange/blue fill + white text */
 .builder .add-btn { background: #e8623a; }
+.builder .add-btn.added { background: #2a9d5c; }
+.builder .track-row-added { background: #eef7f0; }
+.builder .track-row-added:hover { background: #e3f2e8; }
 /* View toggle + play button */
 .builder .view-btn { background: #fffdf7; border-color: #d8c7a2; color: #8a7f6e; }
 .builder .view-btn.active { background: #fff1dd; border-color: #e8623a; color: #e8623a; }

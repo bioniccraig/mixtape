@@ -47,9 +47,14 @@ async function searchByAlbum(albumName) {
   const albums = data.data || [];
   if (!albums.length) return [];
 
-  // Prefer exact title match (handles self-titled albums like Blur's "Blur")
-  const exact = albums.filter(a => lc(a.title) === lc(albumName));
-  const candidates = exact.length ? exact : albums;
+  // Deezer already returns the canonical / most-popular album first (e.g. searching
+  // "Let It Be" puts The Beatles' album top). We must NOT prefer an exact title match:
+  // the real album is often titled "Let It Be (Remastered)" / "Blur (Special Edition)",
+  // so `title === query` would skip it and pick an obscure single named exactly like
+  // the album by a different artist. Instead, just drop 1-track "single" covers so they
+  // can't outrank the real LP, and trust Deezer's popularity order.
+  const real = albums.filter(a => a.record_type === 'album' && (a.nb_tracks || 0) > 1);
+  const candidates = real.length ? real : albums;
 
   // Fetch tracks from up to 2 matching albums in parallel
   const groups = await Promise.all(
@@ -99,15 +104,16 @@ async function searchByArtist(artistName) {
     .map(formatTrack);
 }
 
-// ── Track / multi-field: Deezer advanced query syntax ────────────────────────
+// ── Track / multi-field search ───────────────────────────────────────────────
+// We DON'T use Deezer's quoted advanced syntax (track:"..." artist:"...") here.
+// Its quoted operator does a strict phrase match that silently returns ZERO results
+// for titles carrying a version suffix or numerals — e.g. track:"One After 909"
+// matches nothing because the catalogue title is "One After 909 (Remastered 2009)".
+// A plain free-text query (track + artist + album words) is fuzzy AND popularity-ranked,
+// so the canonical recording comes out on top. We then keep precise client-side
+// filtering on artist/album so a supplied artist still narrows the list.
 function searchByQuery(artist, track, album) {
-  // Deezer supports: track:"harvest moon" artist:"neil young" album:"harvest"
-  const parts = [];
-  if (track)  parts.push(`track:"${track}"`);
-  if (artist) parts.push(`artist:"${artist}"`);
-  if (album)  parts.push(`album:"${album}"`);
-
-  const q = parts.join(' ');
+  const q = [track, artist, album].filter(Boolean).join(' ').trim();
   return xhr(`${DEEZER}?type=track&q=${encodeURIComponent(q)}`).then(data =>
     (data.data || [])
       .filter(t => t.title && t.duration)

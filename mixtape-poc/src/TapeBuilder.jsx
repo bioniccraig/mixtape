@@ -42,9 +42,11 @@ function TimeBar({ usedMs, label }) {
 }
 
 // ── Track row (search results) ────────────────────────────────────────────────
-function TrackRow({ track, onAdd, disabled }) {
+function TrackRow({ track, onAdd, disabled, added = '' }) {
+  const onA = added.includes('A');
+  const onB = added.includes('B');
   return (
-    <div className="track-row">
+    <div className={`track-row${added ? ' track-row-added' : ''}`}>
       {track.artwork && <img src={track.artwork} alt="" className="track-art" />}
       <div className="track-info">
         <span className="track-title">{track.title}</span>
@@ -52,8 +54,8 @@ function TrackRow({ track, onAdd, disabled }) {
       </div>
       <span className="track-dur">{track.durationLabel}</span>
       <div className="track-actions">
-        <button className="add-btn"           onClick={() => onAdd(track, 'A')} disabled={disabled.A} title="Add to Side A">A</button>
-        <button className="add-btn add-btn-b" onClick={() => onAdd(track, 'B')} disabled={disabled.B} title="Add to Side B">B</button>
+        <button className={`add-btn${onA ? ' added' : ''}`}           onClick={() => onAdd(track, 'A')} disabled={disabled.A} title={onA ? 'Already on Side A' : 'Add to Side A'}>{onA ? '✓' : 'A'}</button>
+        <button className={`add-btn add-btn-b${onB ? ' added' : ''}`} onClick={() => onAdd(track, 'B')} disabled={disabled.B} title={onB ? 'Already on Side B' : 'Add to Side B'}>{onB ? '✓' : 'B'}</button>
       </div>
     </div>
   );
@@ -363,6 +365,12 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     } catch {
       patchTrack(side, track.id, { appleStatus: 'error' });
     }
+  }
+
+  // Which side(s) a search result is already on, e.g. 'A', 'B', or 'AB'.
+  // Lets the results list show a ✓ instead of A/B so it's obvious what's been added.
+  function addedSides(id) {
+    return (sideA.some(t => t.id === id) ? 'A' : '') + (sideB.some(t => t.id === id) ? 'B' : '');
   }
 
   function addTrack(track, side) {
@@ -806,7 +814,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
               </p>
             )}
             {results.map(track => (
-              <TrackRow key={track.id} track={track} onAdd={addTrack} disabled={disabled} />
+              <TrackRow key={track.id} track={track} onAdd={addTrack} disabled={disabled} added={addedSides(track.id)} />
             ))}
           </div>
         </div>
