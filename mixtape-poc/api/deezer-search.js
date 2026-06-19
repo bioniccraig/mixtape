@@ -1,7 +1,10 @@
 // Vercel serverless function — proxies Deezer API to avoid iOS Safari CORS/ITP
 // Deezer has a free, no-auth public API with excellent music search quality.
 
+import { blockedByOrigin } from './_guard.js';
+
 export default async function handler(req, res) {
+  if (blockedByOrigin(req)) return res.status(403).json({ error: 'Forbidden' });
   const { type, q, id, limit = 50 } = req.query;
   const enc = s => encodeURIComponent(s || '');
 

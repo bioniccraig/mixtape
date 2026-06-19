@@ -3,12 +3,14 @@
 // Vercel env vars required: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_MUSICKIT_PRIVATE_KEY
 
 import crypto from 'crypto';
+import { blockedByOrigin } from './_guard.js';
 
 function b64url(obj) {
   return Buffer.from(JSON.stringify(obj)).toString('base64url');
 }
 
 export default function handler(req, res) {
+  if (blockedByOrigin(req)) return res.status(403).json({ error: 'Forbidden' });
   const teamId     = process.env.APPLE_TEAM_ID;
   const keyId      = process.env.APPLE_KEY_ID;
   // Vercel sometimes stores newlines as literal \n — normalise either way

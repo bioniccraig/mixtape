@@ -1,7 +1,10 @@
 // Vercel serverless function — looks up iTunes tracks by ID (comma-separated)
 // Used by TapePlayer to fetch artwork + previewUrls after loading a shared tape
 
+import { blockedByOrigin } from './_guard.js';
+
 export default async function handler(req, res) {
+  if (blockedByOrigin(req)) return res.status(403).json({ error: 'Forbidden' });
   const { id, entity } = req.query;
   if (!id) return res.status(400).json({ error: 'id required' });
 

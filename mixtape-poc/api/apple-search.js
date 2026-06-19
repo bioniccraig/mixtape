@@ -8,6 +8,7 @@
 // Response: { songs: [ { id, name, artistName, albumName, artworkUrl, durationMs } ] }
 
 import crypto from 'crypto';
+import { blockedByOrigin } from './_guard.js';
 
 function makeDevToken() {
   const teamId     = process.env.APPLE_TEAM_ID;
@@ -27,6 +28,7 @@ function makeDevToken() {
 }
 
 export default async function handler(req, res) {
+  if (blockedByOrigin(req)) return res.status(403).json({ error: 'Forbidden' });
   const { term, storefront = 'gb', limit = 20 } = req.query;
   if (!term) return res.status(400).json({ error: 'term required' });
 

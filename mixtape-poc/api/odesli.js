@@ -19,6 +19,7 @@
 /* global process */
 
 import { db } from './_supabase.js';
+import { blockedByOrigin } from './_guard.js';
 
 // ── Cache key ─────────────────────────────────────────────────────────────────
 // Extract Deezer track ID from URL or use the id param directly.
@@ -321,6 +322,7 @@ async function searchYouTube(query, wantLive) {
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
+  if (blockedByOrigin(req)) return res.status(403).json({ error: 'Forbidden', youtubeId: null });
   const { url, id, title = '', artist = '', country = 'US' } = req.query;
 
   if (!url && !id && !title) {

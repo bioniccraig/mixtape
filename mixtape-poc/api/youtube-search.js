@@ -9,7 +9,10 @@
 
 /* global process */
 
+import { blockedByOrigin } from './_guard.js';
+
 export default async function handler(req, res) {
+  if (blockedByOrigin(req)) return res.status(403).json({ error: 'Forbidden', items: [] });
   const { q } = req.query;
   if (!q) return res.status(400).json({ error: 'q required', items: [] });
 
