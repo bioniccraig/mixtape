@@ -403,11 +403,14 @@ body {
 }
 .builder-footer-btn:hover { background: #fff8ec; }
 
-/* Clear the fixed footer so content isn't hidden behind it.
-   Desktop: the two panels scroll internally. Mobile: the whole page scrolls. */
+/* Clear the fixed footer so content isn't hidden behind it. A scroll container's
+   own padding-bottom is dropped by browsers when its flex children overflow, so we
+   reserve the space with a non-shrinking flex spacer (::after) instead.
+   .track-list scrolls on all sizes; .panel-tape scrolls only on desktop. */
+.track-list::after { content: ""; flex: 0 0 88px; }
+
 @media (min-width: 641px) {
-  .panel-tape { padding-bottom: 88px; }
-  .track-list { padding-bottom: 88px; }
+  .panel-tape::after { content: ""; flex: 0 0 88px; }
 }
 
 .builder-header {
