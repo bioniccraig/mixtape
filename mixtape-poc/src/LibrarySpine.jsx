@@ -72,33 +72,33 @@ export default function LibrarySpine({
         </span>
       </button>
 
-      {hasActions && (
-        <div className="lib-spine-actions" onClick={e => e.stopPropagation()}>
-          {confirming ? (
-            <>
-              <button className="lib-spine-btn lib-spine-btn-danger"
-                      onClick={() => onDelete(tape)} title="Confirm delete">✓</button>
-              <button className="lib-spine-btn"
-                      onClick={() => setConfirming(false)} title="Cancel">✕</button>
-            </>
-          ) : (
-            <>
-              {kind === 'sent' && (
-                <>
-                  <button className="lib-spine-btn" onClick={copy} title="Copy share link">
-                    {copied ? '✓' : '🔗'}
-                  </button>
-                  <button className="lib-spine-btn" onClick={dupe} disabled={duplicating}
-                          title="Duplicate as draft">
-                    {duplicating ? '…' : '⎘'}
-                  </button>
-                </>
-              )}
-              <button className="lib-spine-btn" onClick={() => setConfirming(true)} title="Delete">🗑</button>
-            </>
-          )}
-        </div>
-      )}
+      {/* Always render the column (even when empty for received tapes) so every
+          cassette keeps the same width and the shelf stays aligned. */}
+      <div className="lib-spine-actions" onClick={e => e.stopPropagation()}>
+        {hasActions && (confirming ? (
+          <>
+            <button className="lib-spine-btn lib-spine-btn-danger"
+                    onClick={() => onDelete(tape)} title="Confirm delete">✓</button>
+            <button className="lib-spine-btn"
+                    onClick={() => setConfirming(false)} title="Cancel">✕</button>
+          </>
+        ) : (
+          <>
+            {kind === 'sent' && (
+              <>
+                <button className="lib-spine-btn" onClick={copy} title="Copy share link">
+                  {copied ? '✓' : '🔗'}
+                </button>
+                <button className="lib-spine-btn" onClick={dupe} disabled={duplicating}
+                        title="Duplicate as draft">
+                  {duplicating ? '…' : '⎘'}
+                </button>
+              </>
+            )}
+            <button className="lib-spine-btn" onClick={() => setConfirming(true)} title="Delete">🗑</button>
+          </>
+        ))}
+      </div>
     </div>
   );
 }
