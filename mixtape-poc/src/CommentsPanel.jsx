@@ -105,7 +105,7 @@ export default function CommentsPanel({ tapeId, user, onSignInRequest }) {
         </form>
       ) : (
         <p className="comment-signin">
-          <button className="btn-auth-link" onClick={onSignInRequest}>Sign in</button>
+          <button className="btn btn-ghost btn-sm" onClick={onSignInRequest}>Sign in</button>
           {' '}to leave a comment.
         </p>
       )}

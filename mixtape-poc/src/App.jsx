@@ -164,7 +164,7 @@ export default function App() {
           <NotificationBell user={user} onOpenTape={id => openTapeInPlayer({ id })} />
           <span className="auth-status">
             <span className="auth-email">{user.email}</span>
-            <button className="btn-auth-link" onClick={signOut}>Sign out</button>
+            <button className="btn btn-ghost btn-sm" onClick={signOut}>Sign out</button>
           </span>
         </div>
 

@@ -348,7 +348,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
         </button>
         <div className="header-actions">
           {!user && onSignInRequest && (
-            <button className="btn-auth-link" onClick={onSignInRequest}>Sign in / Sign up</button>
+            <button className="btn btn-ghost btn-sm" onClick={onSignInRequest}>Sign in / Sign up</button>
           )}
           {user && <NotificationBell user={user} onOpenTape={async id => {
             const { tape: t } = await loadTapeById(id);
@@ -476,7 +476,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           {!user && onSignInRequest && (
             <div className="player-signin-nudge">
               <span>Sign in to save this tape to your library</span>
-              <button className="btn-auth-link" onClick={onSignInRequest}>Sign in / Sign up</button>
+              <button className="btn btn-ghost btn-sm" onClick={onSignInRequest}>Sign in / Sign up</button>
             </div>
           )}
 
@@ -566,12 +566,12 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
 
       {/* ── Persistent footer ── */}
       <footer className="player-footer">
-        <button className="player-footer-btn" onClick={onMakeOwn}>← Home</button>
-        <button className="player-footer-btn" onClick={handleShare}>
+        <button className="btn btn-secondary app-bar-btn" onClick={onMakeOwn}>← Home</button>
+        <button className="btn btn-secondary app-bar-btn" onClick={handleShare}>
           {shareCopied ? '✓ Copied!' : '⬆ Share'}
         </button>
         {canCommunityShare && (
-          <button className="player-footer-btn player-footer-community" onClick={handleCommunityShare}
+          <button className="btn btn-secondary app-bar-btn player-footer-community" onClick={handleCommunityShare}
                   title="Post this tape to the r/SayItWithMusic community">
             🤝 Community
           </button>

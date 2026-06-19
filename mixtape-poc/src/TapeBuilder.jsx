@@ -562,13 +562,13 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
                 const { tape: t } = await loadTapeById(id);
                 if (t && onBack) { onBack(); setTimeout(() => window.location.assign(`/t/${t.shareId}`), 50); }
               }} />
-              <button className="btn-library" onClick={onOpenLibrary} title="My Library">
+              <button className="btn btn-secondary btn-sm" onClick={onOpenLibrary} title="My Library">
                 📼 Library
               </button>
               <span className="auth-status-small">{user.email}</span>
             </>
           ) : (
-            <button className="btn-auth-link" onClick={onSignInRequest} title="Sign in to save tapes">
+            <button className="btn btn-ghost btn-sm" onClick={onSignInRequest} title="Sign in to save tapes">
               Sign in
             </button>
           )}
@@ -789,15 +789,15 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
 
       {/* ── Fixed action footer (floats at the bottom on all screens, like the player) ── */}
       <footer className="builder-footer">
-        <button className="builder-footer-btn" onClick={onBack}>← Back</button>
+        <button className="btn btn-secondary app-bar-btn" onClick={onBack}>← Back</button>
         {hasTracks && user && (
-          <button className="builder-footer-btn" onClick={handleSave} title="Save as draft">{saveLabel}</button>
+          <button className="btn btn-secondary app-bar-btn" onClick={handleSave} title="Save as draft">{saveLabel}</button>
         )}
         {hasTracks && (
-          <button className="builder-footer-btn" onClick={handleNativeShare} title="Share">{nativeLabel}</button>
+          <button className="btn btn-secondary app-bar-btn" onClick={handleNativeShare} title="Share">{nativeLabel}</button>
         )}
         {hasTracks && (
-          <button className="builder-footer-btn" onClick={handleCommunityShare}
+          <button className="btn btn-secondary app-bar-btn" onClick={handleCommunityShare}
                   title="Publish and post to the r/SayItWithMusic community">{communityLabel}</button>
         )}
       </footer>
