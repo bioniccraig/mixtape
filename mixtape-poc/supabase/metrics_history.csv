@@ -1,0 +1,2 @@
+run_date,total_signups,pct_activated,pct_signups_to_second,users_with_tapes,total_tapes,total_shared_tapes,avg_tapes_per_user,avg_shared_per_user,users_with_2plus_tapes,pct_made_second_tape,avg_hours_to_second_tape,median_hours_to_second_tape,total_comments,total_reactions,avg_comments_per_tape,avg_reactions_per_tape
+2026-06-22,94,25.5,3.2,24,33,22,1.38,0.92,3,12.5,20.7,15.6,8,1,0.24,0.03

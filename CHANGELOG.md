@@ -2,6 +2,24 @@
 
 Running log of notable changes. Newest first.
 
+## 22 June 2026 — playback robustness, lock-screen controls, Apple sign-in & share fixes
+
+Driven by weekend user feedback + Sentry corroboration (MIXTAPE-2 YT embed-disabled, MIXTAPE-8 clipboard NotAllowed).
+
+### Player stalls (Issue 1a)
+- **Fixed a dead-lock:** the engine only reloaded a track when its "loaded key" changed (`yt:<id>` / `am:<title>|<artist>`). Two *adjacent* tracks resolving to the same id/title matched the guard and playback froze. Key is now position-aware (`yt:<side>:<index>:<id>`), so duplicates reload.
+- **Stall watchdog:** when a track is told to play we arm a 14s timer; if the engine never reaches the *playing* state (a silent load failure that fires neither end nor error), the watchdog skips the track. Both engines now emit `onPlaying` (YT `PLAYING`, MusicKit `playing`) to clear it. Cleared on deliberate pause so it can't skip a paused track.
+
+### Lock-screen / background (Issue 1b)
+- **Added the Media Session API** (`navigator.mediaSession` metadata + play/pause/next/prev/stop handlers, updated per track) so locking the phone shows OS lock-screen controls and keeps the session alive. Helps the Apple Music engine most; iOS still limits background audio for the embedded YouTube player (platform constraint).
+
+### Apple Music sign-in hang (Issue 3)
+- `music.authorize()` could hang forever (popup dismissed/blocked) — most likely from the **installed PWA** (`display: standalone`, where OAuth pop-ups can't open), leaving the button stuck on "Connecting…". Now raced against a 45s timeout with a state reset and a standalone-aware message ("open in Safari/Chrome to connect"). Added a 15s timeout to the `/api/musickit-token` fetch too.
+
+### Share / draft (Issue 2)
+- **Robust clipboard copy** (`copyToClipboard` in share.js) with a `<textarea>`+`execCommand` fallback and a manual-link prompt — fixes silent copy failures (MIXTAPE-8) in the library and player share buttons.
+- **New `share_initiated` analytics event** (reuses the `events` table, no migration) logged across builder native/community share, player re-share/community, and library copy-link — so we can finally see which share path users take and catch tapes shared outside the app's buttons (the likely "stayed a draft" cause).
+
 ## 19 June 2026 — metrics, funnel analytics & activation UX
 
 ### Metrics & analysis

@@ -25,13 +25,15 @@ function loadApi() {
 
 // elementId: id of the div the player mounts into (YT replaces it with an iframe).
 // onEnded: called when the current video finishes (drives auto-advance).
-export function useYouTube({ elementId, onEnded, onError }) {
+export function useYouTube({ elementId, onEnded, onError, onPlaying }) {
   const playerRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const onEndedRef = useRef(onEnded);
-  const onErrorRef = useRef(onError);
-  useEffect(() => { onEndedRef.current = onEnded; });
-  useEffect(() => { onErrorRef.current = onError; });
+  const onEndedRef   = useRef(onEnded);
+  const onErrorRef   = useRef(onError);
+  const onPlayingRef = useRef(onPlaying);
+  useEffect(() => { onEndedRef.current   = onEnded; });
+  useEffect(() => { onErrorRef.current   = onError; });
+  useEffect(() => { onPlayingRef.current = onPlaying; });
 
   useEffect(() => {
     let cancelled = false;
@@ -43,6 +45,8 @@ export function useYouTube({ elementId, onEnded, onError }) {
           onReady: () => { if (!cancelled) setReady(true); },
           onStateChange: e => {
             if (e.data === YT.PlayerState.ENDED) onEndedRef.current?.();
+            // PLAYING confirms the video loaded & started — clears the stall watchdog.
+            else if (e.data === YT.PlayerState.PLAYING) onPlayingRef.current?.();
           },
           // 101 & 150 = embedding disabled by owner (Vevo etc); 100 = removed; 2/5 = bad id/HTML5
           onError: e => {

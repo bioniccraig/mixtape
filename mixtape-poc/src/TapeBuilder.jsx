@@ -538,6 +538,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setNativeLabel('Saving…');
     const url = await publishTape();
     if (!url) { setNativeLabel('Share 📤'); return; }
+    logBuilder('share_initiated', { method: 'native' });
     const name = tapeName ? `"${tapeName}"` : 'a mixtape';
     if (navigator.share) {
       try {
@@ -563,6 +564,7 @@ export default function TapeBuilder({ onBack, user, onSignInRequest, onOpenLibra
     setCommunityLabel('Saving…');
     const url = await publishTape();
     if (!url) { setCommunityLabel('🤝 Community'); return; }
+    logBuilder('share_initiated', { method: 'community' });
     window.open(buildCommunityShareUrl({ tapeName, shareUrl: url }), '_blank', 'noopener');
     setCommunityLabel('🤝 Community');
   }

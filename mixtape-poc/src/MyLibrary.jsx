@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts, duplicateTape, hideReceivedTape } from './db';
+import { loadMyTapes, getReceivedTapes, deleteTape, getReactionCounts, duplicateTape, hideReceivedTape, logEvent } from './db';
+import { copyToClipboard } from './share';
+import { getSessionId } from './session';
 import LibrarySpine from './LibrarySpine';
 
 function shareUrl(shareId) {
@@ -38,8 +40,10 @@ export default function MyLibrary({ user, onClose, onPlay, onEdit }) {
     });
   }, [user]);
 
-  function copyLink(tape) {
-    navigator.clipboard.writeText(shareUrl(tape.share_id));
+  async function copyLink(tape) {
+    const ok = await copyToClipboard(shareUrl(tape.share_id));
+    alert(ok ? 'Link copied to clipboard' : `Couldn't copy automatically. Here's the link:\n\n${shareUrl(tape.share_id)}`);
+    logEvent({ tapeId: tape.id, eventType: 'share_initiated', sessionId: getSessionId(), viewerId: user.id, metadata: { method: 'copy_link' } });
   }
 
   async function handleDelete(tape) {

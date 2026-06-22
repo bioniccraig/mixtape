@@ -14,7 +14,7 @@ import AppHeader from './AppHeader';
 import { logEvent, getTapeId } from './db';
 import { getSessionId } from './session';
 import { searchYouTube } from './matching';
-import { buildCommunityShareUrl } from './share';
+import { buildCommunityShareUrl, copyToClipboard } from './share';
 
 // ── Interactive match badge for received tapes ───────────────────────────────
 function PlayerBadge({ track, engine, onClick }) {
@@ -141,7 +141,8 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
           if (alt) {
             const setter = playingSide === 'A' ? setTracksA : setTracksB;
             setter(arr => arr.map((t, i) => i === playingIndex ? { ...t, ytId: alt.youtubeId } : t));
-            loadedIdRef.current = `yt:${alt.youtubeId}`;
+            loadedIdRef.current = `yt:${playingSide}:${playingIndex}:${alt.youtubeId}`;
+            armWatchdog();
             yt.play(alt.youtubeId);
             return;
           }
@@ -152,19 +153,42 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     };
   });
 
+  // ── Stall watchdog ────────────────────────────────────────────────────────
+  // When a track is told to play, we start a timer. If the engine never reaches
+  // the "playing" state (a silent load failure that fires neither onEnded nor
+  // onError — e.g. a dead embed that just hangs), the watchdog skips the track
+  // so the tape never stalls. onPlaying clears it.
+  const watchdogRef = useRef(null);
+  const clearWatchdog = () => { if (watchdogRef.current) { clearTimeout(watchdogRef.current); watchdogRef.current = null; } };
+  const armWatchdog = () => {
+    clearWatchdog();
+    watchdogRef.current = setTimeout(() => {
+      watchdogRef.current = null;
+      showMsg('Skipping — this track took too long to start');
+      advanceRef.current();
+    }, 14000);
+  };
+
   const yt = useYouTube({
     elementId: 'yt-player-recipient',
     onEnded: () => advanceRef.current(),
     onError: (code) => ytErrorRef.current(code),
+    onPlaying: () => clearWatchdog(),
   });
 
   const am = useAppleMusic({
     onEnded: () => advanceRef.current(),
-    onError: () => { showMsg("Skipping — Apple Music can't play this track"); advanceRef.current(); },
+    onError: () => { clearWatchdog(); showMsg("Skipping — Apple Music can't play this track"); advanceRef.current(); },
+    onPlaying: () => clearWatchdog(),
   });
 
-  // Tracks the currently-loaded video so we only (re)load on an actual track change —
-  // not on pause/resume or unrelated re-renders.
+  // Clear any pending watchdog on unmount.
+  useEffect(() => clearWatchdog, []); // eslint-disable-line
+
+  // Tracks the currently-loaded track so we only (re)load on an actual track change —
+  // not on pause/resume or unrelated re-renders. Keyed by side+index+id so two
+  // ADJACENT tracks that resolve to the same id/title still reload (otherwise the
+  // guard sees "already loaded" and playback dead-locks).
   const loadedIdRef = useRef(null);
 
   // ── Enrich: fetch artwork for the J-card (playback no longer needs previews) ──
@@ -207,16 +231,19 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
     if (!playing) {
       yt.stop();
       am.stop();
+      clearWatchdog();
       loadedIdRef.current = null;
       return;
     }
     const track = (playingSide === 'A' ? tracksA : tracksB)[playingIndex];
     if (!track) { setPlaying(false); return; }
+    const pos = `${playingSide}:${playingIndex}`;
 
     if (engine === 'apple') {
-      const amKey = `am:${track.title}|${track.artist}`;
+      const amKey = `am:${pos}:${track.title}|${track.artist}`;
       if (loadedIdRef.current === amKey) return;
       loadedIdRef.current = amKey;
+      armWatchdog();
       am.play(track.title, track.artist);
     } else {
       // YouTube
@@ -225,11 +252,58 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
         advanceRef.current();
         return;
       }
-      if (loadedIdRef.current === `yt:${track.ytId}`) return;
-      loadedIdRef.current = `yt:${track.ytId}`;
+      const ytKey = `yt:${pos}:${track.ytId}`;
+      if (loadedIdRef.current === ytKey) return;
+      loadedIdRef.current = ytKey;
+      armWatchdog();
       yt.play(track.ytId);
     }
   }, [playing, playingSide, playingIndex, tracksA, tracksB, engine]); // eslint-disable-line
+
+  // ── Media Session — OS lock-screen / notification controls ────────────────
+  // Without this, locking the phone suspends the page with no way to control or
+  // resume playback. Registering metadata + handlers gives lock-screen controls
+  // and lets the OS keep the session alive (esp. for the Apple Music engine;
+  // iOS still limits background audio for the embedded YouTube player).
+  const nowPlayingTrack = playing
+    ? (playingSide === 'A' ? tracksA : tracksB)[playingIndex]
+    : null;
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    const ms = navigator.mediaSession;
+
+    if (nowPlayingTrack) {
+      try {
+        ms.metadata = new window.MediaMetadata({
+          title:  nowPlayingTrack.title  || '',
+          artist: nowPlayingTrack.artist || '',
+          album:  tape.tapeName ? `MixTape · ${tape.tapeName}` : 'MixTape',
+          artwork: nowPlayingTrack.artwork
+            ? [96, 128, 192, 256, 384, 512].map(s => ({
+                src: nowPlayingTrack.artwork, sizes: `${s}x${s}`, type: 'image/jpeg',
+              }))
+            : [],
+        });
+      } catch { /* MediaMetadata unsupported */ }
+      ms.playbackState = paused ? 'paused' : 'playing';
+    } else {
+      ms.playbackState = 'none';
+      try { ms.metadata = null; } catch { /* ignore */ }
+    }
+
+    const set = (action, handler) => {
+      try { ms.setActionHandler(action, handler); } catch { /* unsupported action */ }
+    };
+    set('play',  () => { if (!playing || paused) togglePlayPause(); });
+    set('pause', () => { if (playing && !paused) togglePlayPause(); });
+    set('previoustrack', () => prev());
+    set('nexttrack',     () => next());
+    set('stop',          () => stop());
+
+    return () => {
+      ['play', 'pause', 'previoustrack', 'nexttrack', 'stop'].forEach(a => set(a, null));
+    };
+  }, [nowPlayingTrack, playing, paused]); // eslint-disable-line
 
   // Start, or pause/resume keeping position (no reload, so the spot is kept).
   function togglePlayPause() {
@@ -248,6 +322,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
       engine === 'apple' ? am.resume() : yt.resume();
       setPaused(false);
     } else {
+      clearWatchdog(); // don't auto-skip a track the user deliberately paused
       engine === 'apple' ? am.pause() : yt.pause();
       setPaused(true);
     }
@@ -300,12 +375,24 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
       ? `${window.location.origin}/t/${tape.shareId}`
       : window.location.href;
     const title = tape.tapeName ? `MixTape: ${tape.tapeName}` : 'Someone sent you a MixTape';
+    logShare('player_reshare');
     if (navigator.share) {
-      try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
+      try { await navigator.share({ title, url }); return; } catch { /* user cancelled — fall through to copy */ }
     }
-    navigator.clipboard.writeText(url).then(() => {
+    const ok = await copyToClipboard(url);
+    if (ok) {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2500);
+    } else {
+      showMsg('Copy failed — long-press the link to copy it manually');
+    }
+  }
+
+  // Analytics: which share path was used (helps spot tapes shared outside the app).
+  function logShare(method) {
+    if (!tape.shareId) return;
+    getTapeId(tape.shareId).then(tapeId => {
+      if (tapeId) logEvent({ tapeId, eventType: 'share_initiated', sessionId: getSessionId(), viewerId: user?.id || null, metadata: { method } });
     });
   }
 
@@ -315,6 +402,7 @@ export default function TapePlayer({ tape, onMakeOwn, isSaved, onClearSaved, use
   const canCommunityShare = !!(tape.allowForward && tape.shareId);
   function handleCommunityShare() {
     if (!tape.shareId) return;
+    logShare('community');
     const url = `${window.location.origin}/t/${tape.shareId}`;
     window.open(
       buildCommunityShareUrl({ tapeName: tape.tapeName, shareUrl: url }),

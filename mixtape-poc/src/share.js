@@ -50,6 +50,38 @@ export function getSharedTape() {
   }
 }
 
+// ── Robust clipboard copy ─────────────────────────────────────────────────────
+// navigator.clipboard.writeText() rejects with "Document is not focused" / a
+// NotAllowedError in several real cases (Sentry MIXTAPE-8) — leaving the user
+// with nothing copied and no feedback. Fall back to a hidden <textarea> +
+// execCommand, and report success so callers can show feedback. Returns a
+// promise<boolean>.
+export async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* fall through to the legacy path */ }
+
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 // ── Community share (Reddit r/SayItWithMusic) ─────────────────────────────────
 // Opens Reddit's "submit post" page pre-filled with the tape's title + link, so
 // the user posts to the community under their OWN Reddit account in one tap.

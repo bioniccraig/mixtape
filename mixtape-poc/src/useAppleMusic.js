@@ -31,9 +31,20 @@ async function ensureConfigured() {
       });
     }
 
-    // Fetch our signed developer token from the Vercel serverless function
-    const res = await fetch('/api/musickit-token');
-    const { token, error } = await res.json();
+    // Fetch our signed developer token from the Vercel serverless function.
+    // Guard with a timeout so a slow/hung endpoint can't leave MusicKit
+    // permanently "not ready" (which silently disables Connect).
+    const ctrl = new AbortController();
+    const tokenTimer = setTimeout(() => ctrl.abort(), 15000);
+    let token, error;
+    try {
+      const res = await fetch('/api/musickit-token', { signal: ctrl.signal });
+      ({ token, error } = await res.json());
+    } catch (e) {
+      throw new Error(e.name === 'AbortError' ? 'MusicKit token request timed out' : e.message);
+    } finally {
+      clearTimeout(tokenTimer);
+    }
     if (error) throw new Error(error);
 
     await MusicKit.configure({
@@ -48,9 +59,11 @@ async function ensureConfigured() {
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
-// onEnded  — called when the current track finishes (drives auto-advance)
-// onError  — called when a track cannot be played
-export function useAppleMusic({ onEnded, onError } = {}) {
+// onEnded   — called when the current track finishes (drives auto-advance)
+// onError   — called when a track cannot be played
+// onPlaying — called when a track actually reaches the playing state (clears the
+//             stall watchdog in TapePlayer)
+export function useAppleMusic({ onEnded, onError, onPlaying } = {}) {
   const [mkReady,      setMkReady]      = useState(false);
   const [authorized,   setAuthorized]   = useState(false);
   const [isSubscriber, setIsSubscriber] = useState(false);
@@ -59,10 +72,12 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   const [storefront,   setStorefront]   = useState('gb'); // user's iTunes store country code
 
   // Keep callback refs fresh so the MusicKit listener always calls the latest version
-  const onEndedRef = useRef(onEnded);
-  const onErrorRef = useRef(onError);
-  useEffect(() => { onEndedRef.current = onEnded; });
-  useEffect(() => { onErrorRef.current = onError; });
+  const onEndedRef   = useRef(onEnded);
+  const onErrorRef   = useRef(onError);
+  const onPlayingRef = useRef(onPlaying);
+  useEffect(() => { onEndedRef.current   = onEnded; });
+  useEffect(() => { onErrorRef.current   = onError; });
+  useEffect(() => { onPlayingRef.current = onPlaying; });
 
   // Auto-advance guard refs:
   // lastPlayAtRef — when we last started a track. Terminal events that arrive
@@ -84,6 +99,9 @@ export function useAppleMusic({ onEnded, onError } = {}) {
     const PS        = window.MusicKit?.PlaybackStates;
     const ended     = PS ? PS.ended     : 5;
     const completed = PS ? PS.completed : 10;
+    const playingSt = PS ? PS.playing   : 3;
+    // A track reaching "playing" confirms the load succeeded — clear the watchdog.
+    if (state === playingSt) { onPlayingRef.current?.(); return; }
     if (state !== ended && state !== completed) return;
     if (Date.now() - lastPlayAtRef.current < 1500) return; // stale/transition event
     if (advancedThisTrackRef.current) return;              // already advanced this track
@@ -124,13 +142,33 @@ export function useAppleMusic({ onEnded, onError } = {}) {
   }, []);
 
   // ── Authorise with Apple ID + verify subscription ─────────────────────────
+  // music.authorize() opens an Apple OAuth popup. If the user dismisses it, or
+  // the popup is blocked (common when the app runs as an INSTALLED PWA in
+  // `display: standalone`, where new windows can't open), the promise can hang
+  // forever — leaving the button stuck on "Connecting…". Race it against a
+  // timeout so we always recover with a useful message.
   async function authorize() {
     if (!mkReady) return;
     setAuthorizing(true);
     setAuthError(null);
+
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+
     try {
       const music = MusicKit.getInstance();
-      await music.authorize();
+
+      const AUTH_TIMEOUT = 45000;
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('AUTH_TIMEOUT')), AUTH_TIMEOUT);
+      });
+      try {
+        await Promise.race([music.authorize(), timeout]);
+      } finally {
+        clearTimeout(timer);
+      }
       setAuthorized(music.isAuthorized);
 
       if (music.isAuthorized) {
@@ -145,7 +183,15 @@ export function useAppleMusic({ onEnded, onError } = {}) {
         }
       }
     } catch (err) {
-      setAuthError(err.message || 'Authorisation failed — please try again.');
+      if (err.message === 'AUTH_TIMEOUT') {
+        setAuthError(
+          isStandalone
+            ? "Apple sign-in couldn't open from the installed app. Open MixTape in Safari/Chrome to connect Apple Music, then return here."
+            : 'Apple sign-in timed out — make sure the pop-up isn\'t blocked, then try again.'
+        );
+      } else {
+        setAuthError(err.message || 'Authorisation failed — please try again.');
+      }
     } finally {
       setAuthorizing(false);
     }
