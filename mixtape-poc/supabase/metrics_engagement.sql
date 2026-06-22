@@ -63,3 +63,21 @@ select
         / nullif((select count(*) from tapes), 0), 2)                          as avg_comments_per_tape,
   round((select count(*)::numeric from reactions)
         / nullif((select count(*) from tapes), 0), 2)                          as avg_reactions_per_tape;
+
+
+-- ── SHARE-METHOD BREAKDOWN (added 22 Jun 2026) ────────────────────────────────
+-- Which path users take to share a tape. `share_initiated` fires on every share
+-- action (builder native/community, player reshare/community, library copy-link).
+-- Helps spot tapes shared OUTSIDE the app's buttons (the suspected "stayed a
+-- draft" cause): if real sends keep happening but share_initiated stays near 0,
+-- people are copying the URL bar instead of using Share. Returns one row per
+-- method with all-time and last-7-day counts.
+select
+  coalesce(metadata->>'method', '(none)')                                      as share_method,
+  count(*)                                                                     as shares_all_time,
+  count(*) filter (where created_at >= now() - interval '7 days')              as shares_last_7d,
+  count(distinct viewer_id) filter (where viewer_id is not null)               as distinct_users_all_time
+from events
+where event_type = 'share_initiated'
+group by 1
+order by shares_all_time desc;
